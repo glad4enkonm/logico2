@@ -19,8 +19,8 @@ edges = Array.from(edges)
 
 // Generating some key value data
 const allValues = {}
-nodes.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 10) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
-edges.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 10) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
+nodes.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 50) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
+edges.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 50) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
 
 const data = { nodes, edges }
 
@@ -40,6 +40,30 @@ const defaultStyle = {
 
 
 const highlited = { nodes: [], edges: [] }
+
+function adjustLayout(graph) {
+  // Get the graph data
+  let data = graph.save();
+
+  // Adjust nodeSpacing based on the number of nodes
+  let nodeSpacing = Math.sqrt(data.nodes.length) * 1000;  
+  
+
+  // Adjust center based on the graph size
+  let center = [graph.getWidth() / 2, graph.getHeight() / 2];
+
+  // Update the layout configuration
+  graph.updateLayout({
+    nodeSpacing: nodeSpacing,
+    center: center,
+    // other layout parameters...
+  });
+
+  // Re-render the graph
+  graph.render();
+}
+
+
 
 export function App() {
   const ref = React.useRef(null)
@@ -179,7 +203,8 @@ export function App() {
 
     graph.data(data)
 
-    graph.render()
+    graph.render()    
+    adjustLayout(graph)
     graph.paint()
 
   }, [])
