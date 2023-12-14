@@ -54,6 +54,7 @@ export function App() {
     || document.body.clientHeight
 
   const [selectedElementValues, setSelectedElementValues] = useState({});
+  const [selectedElementLabel, setSelectedElementLabel] = useState("Select element");
 
   useEffect(() => {
     if (!graph) {
@@ -91,11 +92,27 @@ export function App() {
             }
           }
         },
+        layout: {
+          type: 'gForce',
+          center: [700, 700], // The center of the graph by default
+          preventOverlap: true,
+          coulombDisScale: 0.0015,
+          nodeSpacing: 50,
+          onTick: () => {
+            console.log('ticking');
+          },
+          onLayoutEnd: () => {
+            console.log('force layout done');
+          },
+          workerEnabled: true, // Whether to activate web-worker
+          //gpuEnabled: true     // Whether to enable the GPU parallel computing, supported by G6 4.0          
+        },
       });
     }
 
     graph.on('edge:click', (e) => {
       setSelectedElementValues(allValues[e.item._cfg.id])
+      setSelectedElementLabel(e.item._cfg.model.label)
       highlited.edges.push(e.item)
       highlited.nodes.push(e.item.getSource(), e.item.getTarget())
 
@@ -110,6 +127,7 @@ export function App() {
     graph.on('node:click', (e) => {      
       const node = e.item; // The clicked node
       setSelectedElementValues(allValues[e.item._cfg.id])
+      setSelectedElementLabel(e.item._cfg.model.label)
       highlited.nodes.push(node);
 
       // Get connected edges for the clicked node
@@ -143,6 +161,8 @@ export function App() {
 
     // Reset styles when clicking elsewhere on the canvas
     graph.on('canvas:click', () => {
+      setSelectedElementValues({})
+      setSelectedElementLabel("")
       highlited.edges.forEach(el => graph.updateItem(el, {
         style: defaultStyle,
       }))
@@ -168,7 +188,7 @@ export function App() {
     <div>
       <div ref={ref}>
       </div>
-      <RightPanel data={selectedElementValues} />
+      <RightPanel data={selectedElementValues} caption={selectedElementLabel} />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import React from 'react';
 import './rightPanel.css';
 
-const RightPanel = ({data}) => {
+const RightPanel = ({data, caption}) => {
   return (
     <div className="right-panel">
-      <h2 className="panel-caption">Panel Caption</h2>
+      <h2 className="panel-caption">{caption}</h2>
       <table className="info-table">
         <tbody>
           {Object.entries(data).map(([key, value], index) => (
