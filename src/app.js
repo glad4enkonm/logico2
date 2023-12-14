@@ -1,27 +1,30 @@
-import React, { useEffect, useState } from 'react';
-const data = { nodes: [...Array(30)].map((_, i) => ({ id: `node${i + 1}`, label: `node${i + 1}` })), edges: [...Array(60)].map(() => ({ source: `node${Math.floor(Math.random() * 30) + 1}`, target: `node${Math.floor(Math.random() * 30) + 1}`, label: `edge${Math.floor(Math.random() * 60) + 1}` })) }
-/*{
-    // The array of nodes
-    nodes: [
-      {
-        id: 'node1',
-        label: 'node1',
-      },
-      {
-        id: 'node2',
-        label: 'node2',
-      },
-    ],
-    // The array of edges
-    edges: [
-      {
-        source: 'node1',
-        target: 'node2',
-        label: 'node1toNode2',
-      },
-    ],
-  }; */
-import G6 from '@antv/g6';
+import React, { useEffect, useState } from 'react'
+import RightPanel from './components/rightPanel'
+import G6 from '@antv/g6'
+
+const nodes = [...Array(30)].map((_, i) => ({ id: `Node${i + 1}`, label: `Node${i + 1}` }))
+let edges = new Set();
+while (edges.size < 60) {
+  const source = `Node${Math.floor(Math.random() * 30) + 1}`
+  const target = `Node${Math.floor(Math.random() * 30) + 1}`
+  const label = `${source}To${target}`
+  const id = label
+
+  // Add the edge to the set. If the edge already exists, it won't be added again.
+  edges.add({ source, target, label, id });
+}
+
+// Convert the set back to an array.
+edges = Array.from(edges)
+
+// Generating some key value data
+const allValues = {}
+nodes.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 10) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
+edges.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 10) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
+
+const data = { nodes, edges }
+
+
 
 // Define the highlight styles for the edge and nodes
 const highlightStyle = {
@@ -36,7 +39,7 @@ const defaultStyle = {
 }
 
 
-const highlited = {nodes:[], edges:[]}
+const highlited = { nodes: [], edges: [] }
 
 export function App() {
   const ref = React.useRef(null)
@@ -44,17 +47,19 @@ export function App() {
 
   const width = window.innerWidth
     || document.documentElement.clientWidth
-    || document.body.clientWidth;
+    || document.body.clientWidth
 
   const height = window.innerHeight
     || document.documentElement.clientHeight
-    || document.body.clientHeight;
+    || document.body.clientHeight
+
+  const [selectedElementValues, setSelectedElementValues] = useState({});
 
   useEffect(() => {
     if (!graph) {
       graph = new G6.Graph({
         container: ref.current,
-        width: width * 0.8,
+        width: width - 300,
         height: height * 0.95,
         modes: {
           default: ['drag-canvas', 'drag-node', 'zoom-canvas']
@@ -90,8 +95,9 @@ export function App() {
     }
 
     graph.on('edge:click', (e) => {
-      highlited.edges.push(e.item)      
-      highlited.nodes.push(e.item.getSource(), e.item.getTarget())      
+      setSelectedElementValues(allValues[e.item._cfg.id])
+      highlited.edges.push(e.item)
+      highlited.nodes.push(e.item.getSource(), e.item.getTarget())
 
       const elements = highlited.edges.concat(highlited.nodes)
       elements.forEach(el => graph.updateItem(el, {
@@ -101,40 +107,41 @@ export function App() {
       graph.paint();
     });
 
-    graph.on('node:click', (e) => {
+    graph.on('node:click', (e) => {      
       const node = e.item; // The clicked node
+      setSelectedElementValues(allValues[e.item._cfg.id])
       highlited.nodes.push(node);
-      
+
       // Get connected edges for the clicked node
       const edges = graph.getEdges().filter(edge => {
-          return edge.getSource() === node || edge.getTarget() === node;
+        return edge.getSource() === node || edge.getTarget() === node;
       });
-  
+
       // Add the connected edges to the highlighted list
       edges.forEach(edge => {
-          highlited.edges.push(edge);
-          
-          // Additionally, highlight the opposite node of each edge
-          const source = edge.getSource();
-          const target = edge.getTarget();
-          if (source !== node && highlited.nodes.indexOf(source) === -1) {
-              highlited.nodes.push(source);
-          }
-          if (target !== node && highlited.nodes.indexOf(target) === -1) {
-              highlited.nodes.push(target);
-          }
+        highlited.edges.push(edge);
+
+        // Additionally, highlight the opposite node of each edge
+        const source = edge.getSource();
+        const target = edge.getTarget();
+        if (source !== node && highlited.nodes.indexOf(source) === -1) {
+          highlited.nodes.push(source);
+        }
+        if (target !== node && highlited.nodes.indexOf(target) === -1) {
+          highlited.nodes.push(target);
+        }
       });
-  
+
       // Apply the highlight style to all highlighted elements
       const elements = highlited.edges.concat(highlited.nodes);
       elements.forEach(el => graph.updateItem(el, {
-          style: highlightStyle,
+        style: highlightStyle,
       }));
-  
-      graph.paint();
-  });
 
-    // Optional: Reset styles when clicking elsewhere on the canvas
+      graph.paint();
+    });
+
+    // Reset styles when clicking elsewhere on the canvas
     graph.on('canvas:click', () => {
       highlited.edges.forEach(el => graph.updateItem(el, {
         style: defaultStyle,
@@ -144,7 +151,8 @@ export function App() {
         style: defaultNodeStyle,
       }))
 
-      highlited.edges = highlited.nodes = []
+      highlited.edges = []
+      highlited.nodes = []
 
       graph.paint();
     });
@@ -157,7 +165,10 @@ export function App() {
   }, [])
 
   return (
-    <div ref={ref}>
+    <div>
+      <div ref={ref}>
+      </div>
+      <RightPanel data={selectedElementValues} />
     </div>
   );
 }

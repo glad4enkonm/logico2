@@ -1,0 +1,37 @@
+.right-panel {
+    background: #121212;
+    color: #E0E0E0;
+    border-left: 1px solid #343434;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px; /* Adjust width as necessary */
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .panel-caption {
+    color: #FFFFFF;
+    margin-bottom: 20px;
+  }
+  
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .info-table td {
+    padding: 8px;
+    border-bottom: 1px solid #2C2C2C;
+  }
+  
+  .info-table .key {
+    color: #BBBBBB;
+    width: 40%; /* Adjust the width as necessary */
+  }
+  
+  .info-table .value {
+    color: #E0E0E0;
+    width: 60%; /* Adjust the width as necessary */
+  }
