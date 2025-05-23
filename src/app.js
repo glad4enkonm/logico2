@@ -1,75 +1,37 @@
-import React, { useEffect, useState } from 'react'
-import RightPanel from './components/rightPanel'
-import G6 from '@antv/g6'
+import React, { useEffect, useState } from 'react';
+import RightPanel from './components/rightPanel';
+import G6 from '@antv/g6';
+import { generateRandomGraph, adjustLayout } from './utils/graphUtil';
 
-const nodes = [...Array(30)].map((_, i) => ({ id: `Node${i + 1}`, label: `Node${i + 1}` }))
-let edges = new Set();
-while (edges.size < 60) {
-  const source = `Node${Math.floor(Math.random() * 30) + 1}`
-  const target = `Node${Math.floor(Math.random() * 30) + 1}`
-  const label = `${source}To${target}`
-  const id = label
-
-  // Add the edge to the set. If the edge already exists, it won't be added again.
-  edges.add({ source, target, label, id });
-}
-
-// Convert the set back to an array.
-edges = Array.from(edges)
-
-// Generating some key value data
-const allValues = {}
-nodes.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 50) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
-edges.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 50) + 1)].reduce((o, _, i) => (o['key' + i] = 'value' + Math.floor(Math.random() * 100), o), {}))
-
-const data = { nodes, edges }
+const { nodes, edges, allValues } = generateRandomGraph(30, 60);
+const data = { nodes, edges };
 
 // Define the highlight styles for the edge and nodes
 const highlightStyle = {
   stroke: '#03DAC6', // Highlight color for the edge
   // Additional styles if needed
-}
+};
 
 const defaultStyle = {
   stroke: "#343434", // Borders and dividers color for edges
-}, defaultNodeStyle = {
+};
+const defaultNodeStyle = {
   stroke: "#BB86FC"
-}
+};
 
-const highlited = { nodes: [], edges: [] }
-
-function adjustLayout(graph) {
-  // Get the graph data
-  let data = graph.save();
-
-  // Adjust nodeSpacing based on the number of nodes
-  let nodeSpacing = Math.sqrt(data.nodes.length) * 1000;
-
-  // Adjust center based on the graph size
-  let center = [graph.getWidth() / 2, graph.getHeight() / 2];
-
-  // Update the layout configuration
-  graph.updateLayout({
-    nodeSpacing: nodeSpacing,
-    center: center,
-    // other layout parameters...
-  });
-
-  // Re-render the graph
-  graph.render();
-}
+const highlited = { nodes: [], edges: [] };
 
 export function App() {
-  const ref = React.useRef(null)
-  let graph = null
+  const ref = React.useRef(null);
+  let graph = null;
 
   const width = window.innerWidth
     || document.documentElement.clientWidth
-    || document.body.clientWidth
+    || document.body.clientWidth;
 
   const height = window.innerHeight
     || document.documentElement.clientHeight
-    || document.body.clientHeight
+    || document.body.clientHeight;
 
   const [selectedElementValues, setSelectedElementValues] = useState({});
   const [selectedElementLabel, setSelectedElementLabel] = useState("Select element");
@@ -129,23 +91,23 @@ export function App() {
     }
 
     graph.on('edge:click', (e) => {
-      setSelectedElementValues(allValues[e.item._cfg.id])
-      setSelectedElementLabel(e.item._cfg.model.label)
-      highlited.edges.push(e.item)
-      highlited.nodes.push(e.item.getSource(), e.item.getTarget())
+      setSelectedElementValues(allValues[e.item._cfg.id]);
+      setSelectedElementLabel(e.item._cfg.model.label);
+      highlited.edges.push(e.item);
+      highlited.nodes.push(e.item.getSource(), e.item.getTarget());
 
-      const elements = highlited.edges.concat(highlited.nodes)
+      const elements = highlited.edges.concat(highlited.nodes);
       elements.forEach(el => graph.updateItem(el, {
         style: highlightStyle,
-      }))
+      }));
 
       graph.paint();
     });
 
     graph.on('node:click', (e) => {
       const node = e.item; // The clicked node
-      setSelectedElementValues(allValues[e.item._cfg.id])
-      setSelectedElementLabel(e.item._cfg.model.label)
+      setSelectedElementValues(allValues[e.item._cfg.id]);
+      setSelectedElementLabel(e.item._cfg.model.label);
       highlited.nodes.push(node);
 
       // Get connected edges for the clicked node
@@ -179,29 +141,29 @@ export function App() {
 
     // Reset styles when clicking elsewhere on the canvas
     graph.on('canvas:click', () => {
-      setSelectedElementValues({})
-      setSelectedElementLabel("")
+      setSelectedElementValues({});
+      setSelectedElementLabel("");
       highlited.edges.forEach(el => graph.updateItem(el, {
         style: defaultStyle,
-      }))
+      }));
 
       highlited.nodes.forEach(el => graph.updateItem(el, {
         style: defaultNodeStyle,
-      }))
+      }));
 
-      highlited.edges = []
-      highlited.nodes = []
+      highlited.edges = [];
+      highlited.nodes = [];
 
       graph.paint();
     });
 
-    graph.data(data)
+    graph.data(data);
 
-    graph.render()
-    adjustLayout(graph)
-    graph.paint()
+    graph.render();
+    adjustLayout(graph);
+    graph.paint();
 
-  }, [])
+  }, []);
 
   return (
     <div>
