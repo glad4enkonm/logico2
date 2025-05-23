@@ -10,8 +10,9 @@ export function handleRandomEffect(graph, graphData, allValues) {
   return (evt) => {
     if (evt.detail === 'random') {
       const { nodes, edges, allValues: values } = generateRandomGraph(30, 60);
-      graphData = { nodes, edges };
-      allValues = values;
+      graphData.nodes = nodes;
+      graphData.edges = edges;
+      Object.assign(allValues, values);
       if (graph) {
         graph.data(graphData);
         graph.render();

@@ -22,7 +22,7 @@ const highlited = { nodes: [], edges: [] };
 export function App() {
   const ref = React.useRef(null);
   let graph = null;
-  let graphData = null;
+  let graphData = { nodes: [], edges: [] };
   let allValues = {};
 
   const width = window.innerWidth
@@ -90,8 +90,8 @@ export function App() {
       });
     }
 
-    // Initialize empty graph data
-    graph.data({ nodes: [], edges: [] });
+    // Initialize graph data
+    graph.data(graphData);
     graph.render();
     graph.paint();
 
