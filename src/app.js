@@ -24,11 +24,9 @@ edges.forEach(e => allValues[e.id] = [...Array(Math.floor(Math.random() * 50) + 
 
 const data = { nodes, edges }
 
-
-
 // Define the highlight styles for the edge and nodes
 const highlightStyle = {
-  stroke: '#03DAC6', // Highlight color for the edge        
+  stroke: '#03DAC6', // Highlight color for the edge
   // Additional styles if needed
 }
 
@@ -38,7 +36,6 @@ const defaultStyle = {
   stroke: "#BB86FC"
 }
 
-
 const highlited = { nodes: [], edges: [] }
 
 function adjustLayout(graph) {
@@ -46,8 +43,7 @@ function adjustLayout(graph) {
   let data = graph.save();
 
   // Adjust nodeSpacing based on the number of nodes
-  let nodeSpacing = Math.sqrt(data.nodes.length) * 1000;  
-  
+  let nodeSpacing = Math.sqrt(data.nodes.length) * 1000;
 
   // Adjust center based on the graph size
   let center = [graph.getWidth() / 2, graph.getHeight() / 2];
@@ -62,8 +58,6 @@ function adjustLayout(graph) {
   // Re-render the graph
   graph.render();
 }
-
-
 
 export function App() {
   const ref = React.useRef(null)
@@ -129,7 +123,7 @@ export function App() {
             console.log('force layout done');
           },
           workerEnabled: true, // Whether to activate web-worker
-          //gpuEnabled: true     // Whether to enable the GPU parallel computing, supported by G6 4.0          
+          //gpuEnabled: true     // Whether to enable the GPU parallel computing, supported by G6 4.0
         },
       });
     }
@@ -148,7 +142,7 @@ export function App() {
       graph.paint();
     });
 
-    graph.on('node:click', (e) => {      
+    graph.on('node:click', (e) => {
       const node = e.item; // The clicked node
       setSelectedElementValues(allValues[e.item._cfg.id])
       setSelectedElementLabel(e.item._cfg.model.label)
@@ -203,7 +197,7 @@ export function App() {
 
     graph.data(data)
 
-    graph.render()    
+    graph.render()
     adjustLayout(graph)
     graph.paint()
 
