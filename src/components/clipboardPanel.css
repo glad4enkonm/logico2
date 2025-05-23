@@ -1,0 +1,44 @@
+.clipboard-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  background-color: #121212;
+  color: #E0E0E0;
+}
+
+.clipboard-panel textarea,
+.clipboard-panel select {
+  width: 100%; /* Make both elements take full width */
+  padding: 10px;
+  border: 1px solid #343434;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  background-color: #1e1e1e;
+  color: #E0E0E0;
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Moved to combined selector above */
+
+.clipboard-panel .button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.error-message {
+  color: #FF5252; /* Red color for error messages */
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .clipboard-panel .button-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

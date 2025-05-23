@@ -1,12 +1,20 @@
 .button-panel {
   display: flex;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   background: #121212;
-  color: #E0E0E0;  
-  height: 40px;
+  color: #E0E0E0;
   width: 100%;
   margin-bottom: 20px; /* Add some space between the buttons and the content */
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap; /* Allow buttons to wrap */
+  justify-content: flex-start; /* Align buttons to the start */
+  align-items: center;
+  gap: 10px; /* Add some space between buttons */
+  height: auto; /* Allow height to adjust based on content */
 }
 
 .panel-button {
@@ -20,4 +28,10 @@
 
 .panel-button:hover {
   background: #BB86FC;
+}
+
+.clipboard-panel-container {
+  margin-top: 20px;
+  border-top: 1px solid #ccc;
+  padding-top: 20px;
 }

@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './buttonPanel.css';
+import './clipboardPanel.css';
 import Button from './Button';
+import ClipboardPanel from './ClipboardPanel';
 
 const ButtonPanel = () => {
+  const [showClipboard, setShowClipboard] = useState(false);
+
   const handleClick = (buttonNumber) => {
     console.log(`Button ${buttonNumber} clicked`);
 
@@ -15,26 +19,38 @@ const ButtonPanel = () => {
 
   return (
     <div className="button-panel">
-      <Button
-        onClick={() => handleClick(4)}
-        text="New"
-        enabled={true}
-      />
-      <Button
-        onClick={() => handleClick(1)}
-        text="Open"
-        enabled={true}
-      />
-      <Button
-        onClick={() => handleClick(2)}
-        text="Save as"
-        enabled={true} // Disabled button
-      />      
-      <Button
-        onClick={() => handleClick('random')}
-        text="Random"
-        enabled={true}
-      />
+      <div className="button-group">
+        <Button
+          onClick={() => handleClick(4)}
+          text="New"
+          enabled={true}
+        />
+        <Button
+          onClick={() => handleClick(1)}
+          text="Open"
+          enabled={true}
+        />
+        <Button
+          onClick={() => handleClick(2)}
+          text="Save as"
+          enabled={true} // Disabled button
+        />
+        <Button
+          onClick={() => handleClick('random')}
+          text="Random"
+          enabled={true}
+        />
+        <Button
+          onClick={() => setShowClipboard(!showClipboard)}
+          text="LLM Clipboard"
+          enabled={true}
+        />
+      </div>
+      {showClipboard && (
+        <div className="clipboard-panel-container">
+          <ClipboardPanel />
+        </div>
+      )}
     </div>
   );
 };
