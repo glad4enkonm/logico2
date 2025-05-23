@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import RightPanel from './components/rightPanel';
+import ButtonPanel from './components/ButtonPanel';
 import G6 from '@antv/g6';
 import { generateRandomGraph, adjustLayout } from './utils/graphUtil';
-
-const { nodes, edges, allValues } = generateRandomGraph(30, 60);
-const data = { nodes, edges };
 
 // Define the highlight styles for the edge and nodes
 const highlightStyle = {
@@ -24,6 +22,8 @@ const highlited = { nodes: [], edges: [] };
 export function App() {
   const ref = React.useRef(null);
   let graph = null;
+  let graphData = null;
+  let allValues = {};
 
   const width = window.innerWidth
     || document.documentElement.clientWidth
@@ -89,6 +89,11 @@ export function App() {
         },
       });
     }
+
+    // Initialize empty graph data
+    graph.data({ nodes: [], edges: [] });
+    graph.render();
+    graph.paint();
 
     graph.on('edge:click', (e) => {
       setSelectedElementValues(allValues[e.item._cfg.id]);
@@ -157,13 +162,30 @@ export function App() {
       graph.paint();
     });
 
-    graph.data(data);
-
-    graph.render();
-    adjustLayout(graph);
-    graph.paint();
-
   }, []);
+
+  // Add event listener for the "random" button click
+  useEffect(() => {
+    const handleRandomClick = (evt) => {
+      if (evt.detail === 'random') {
+        const { nodes, edges, allValues: values } = generateRandomGraph(30, 60);
+        graphData = { nodes, edges };
+        allValues = values;
+        if (graph) {
+          graph.data(graphData);
+          graph.render();
+          adjustLayout(graph);
+          graph.paint();
+        }
+      }
+    };
+
+    window.addEventListener('buttonClick', handleRandomClick);
+
+    return () => {
+      window.removeEventListener('buttonClick', handleRandomClick);
+    };
+  }, [graph]);
 
   return (
     <div>

@@ -5,6 +5,12 @@ import Button from './Button';
 const ButtonPanel = () => {
   const handleClick = (buttonNumber) => {
     console.log(`Button ${buttonNumber} clicked`);
+
+    // Dispatch a custom event for the button click
+    if (buttonNumber === 'random') {
+      const event = new CustomEvent('buttonClick', { detail: buttonNumber });
+      window.dispatchEvent(event);
+    }
   };
 
   return (
@@ -23,12 +29,12 @@ const ButtonPanel = () => {
         onClick={() => handleClick(2)}
         text="Save as"
         enabled={true} // Disabled button
-      />
-      <Button
-        onClick={() => handleClick(3)}
-        text="Switch to"
-        enabled={true}
       />      
+      <Button
+        onClick={() => handleClick('random')}
+        text="Random"
+        enabled={true}
+      />
     </div>
   );
 };
