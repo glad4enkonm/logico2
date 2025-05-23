@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RightPanel from './components/rightPanel';
 import ButtonPanel from './components/ButtonPanel';
 import G6 from '@antv/g6';
-import { generateRandomGraph, adjustLayout } from './utils/graphUtil';
+import { handleRandomEffect } from './effects';
 
 // Define the highlight styles for the edge and nodes
 const highlightStyle = {
@@ -166,19 +166,7 @@ export function App() {
 
   // Add event listener for the "random" button click
   useEffect(() => {
-    const handleRandomClick = (evt) => {
-      if (evt.detail === 'random') {
-        const { nodes, edges, allValues: values } = generateRandomGraph(30, 60);
-        graphData = { nodes, edges };
-        allValues = values;
-        if (graph) {
-          graph.data(graphData);
-          graph.render();
-          adjustLayout(graph);
-          graph.paint();
-        }
-      }
-    };
+    const handleRandomClick = handleRandomEffect(graph, graphData, allValues);
 
     window.addEventListener('buttonClick', handleRandomClick);
 
