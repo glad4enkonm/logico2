@@ -16,9 +16,10 @@ function createDownloadLink() {
  * Handle the Save As button click
  * @param {G6.Graph} graph - The G6 graph instance
  * @param {Object} graphData - The current graph data
+ * @param {Object} allValues - The values for all elements
  * @returns {Function} - The event handler function
  */
-export function handleSaveAsEffect(graph, graphData) {
+export function handleSaveAsEffect(graph, graphData, allValues) {
   return (evt) => {
     if (evt.detail !== 'saveAs') return;
 
@@ -31,8 +32,9 @@ export function handleSaveAsEffect(graph, graphData) {
     // Create a JSON structure with the graph data
     const graphJson = JSON.stringify(
       {
-        nodes: data.nodes,
-        edges: data.edges,
+        nodes: data.nodes.map(node => ({ id: node.id, label: node.label, x: node.x, y: node.y })),
+        edges: data.edges.map(edge => ({ source: edge.source, target: edge.target, label: edge.label, id: edge.id })),
+        allValues: allValues
       },
       null,
       2

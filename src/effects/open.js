@@ -1,23 +1,29 @@
 import { readFile } from '../utils/fileUtil';
+import { initializeGraph } from '../utils/graphUtil';
 
 /**
  * Handle the Open button click
- * @param {G6.Graph} graph - The G6 graph instance
+ * @param {React.RefObject<G6.Graph>} graphRef - React ref to the G6 graph instance
  * @param {Object} graphData - The current graph data
  * @param {Object} allValues - The values for all elements
  * @returns {Function} - The event handler function
  */
-export function handleOpenEffect(graph, graphData, allValues) {
+export function handleOpenEffect(graphRef, graphData, allValues) {
   return async (evt) => {
     if (evt.detail !== 'open') return; // Only handle the Open button click
+
+    const graph = graphRef.current;
+    if (!graph) {
+      console.error("Graph instance not available in handleOpenEffect");
+      return;
+    }
 
     // Create a file input element to allow the user to select a file
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
 
-    // When a file is selected, read and parse it
-    input.onchange = async (event) => {
+    const handleFileChange = async (event) => {
       const file = event.target.files[0];
       if (file) {
         try {
@@ -31,38 +37,30 @@ export function handleOpenEffect(graph, graphData, allValues) {
           graphData.nodes = data.nodes || [];
           graphData.edges = data.edges || [];
 
-          // Update the graph with the new data
-          graph.changeData(graphData);
-
           // Clear any existing values
           Object.keys(allValues).forEach(key => {
             delete allValues[key];
           });
 
-          // Clear any highlights
-          graph.getEdges().forEach(edge => {
-            graph.updateItem(edge, {
-              style: {
-                stroke: "#343434", // Reset to default style
-              },
-            });
-          });
+          // Restore the allValues from the file
+          if (data.allValues) {
+            Object.assign(allValues, data.allValues);
+          }
 
-          graph.getNodes().forEach(node => {
-            graph.updateItem(node, {
-              style: {
-                stroke: "#BB86FC", // Reset to default style
-              },
-            });
-          });
-
-          graph.paint();
+          // Initialize the graph with the new data using the centralized function
+          initializeGraph(graph, graphData, false);
         } catch (error) {
           console.error('Error loading graph data:', error);
           alert('Failed to load graph data. Please check the file format.');
         }
       }
+
+      // Remove the event listener after it has been used
+      input.removeEventListener('change', handleFileChange);
     };
+
+    // Add the onchange event listener only once
+    input.addEventListener('change', handleFileChange);
 
     // Programmatically click the file input to trigger the file selection dialog
     input.click();

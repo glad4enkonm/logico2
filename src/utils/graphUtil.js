@@ -1,4 +1,30 @@
 import G6 from '@antv/g6';
+import { GRAPH_LAYOUT_OPTIONS } from '../constants/appConstants';
+
+/**
+ * Initialize or update a graph with the given data
+ * @param {G6.Graph} graph - The G6 graph instance
+ * @param {Object} graphData - The graph data {nodes, edges}
+ * @param {boolean} [doLayout=true] - Whether to adjust the layout
+ * @returns {void}
+ */
+export function initializeGraph(graph, graphData, doLayout = true) {
+  if (!graph) return;
+
+  if (doLayout) {
+    // Apply gForce layout (e.g., for random graph)
+    graph.data(graphData); // Load data first
+    graph.updateLayout(GRAPH_LAYOUT_OPTIONS); // Configure the layout
+    graph.layout(); // Execute the layout algorithm
+    graph.render(); // Render the graph with the new layout
+  } else {
+    // Load data and preserve positions (e.g., opening a file, new empty graph)
+    // graph.read() loads data AND renders, respecting x/y in graphData.
+    // If graphData is empty (new graph), nodes will not have positions until manually set or a layout is applied.
+    graph.read(graphData);
+  }
+  graph.paint(); // Good practice to ensure canvas is up-to-date
+}
 
 /**
  * Generate a random graph with nodes and edges
@@ -33,30 +59,4 @@ export function generateRandomGraph(nodeCount = 30, edgeCount = 60) {
     edges,
     allValues
   };
-}
-
-/**
- * Adjust the layout of a G6 graph
- * @param {G6.Graph} graph - The G6 graph instance
- * @param {number} [nodeSpacing=1000] - The spacing between nodes
- */
-export function adjustLayout(graph, nodeSpacing = 1000) {
-  // Get the graph data
-  let data = graph.save();
-
-  // Adjust nodeSpacing based on the number of nodes
-  nodeSpacing = Math.sqrt(data.nodes.length) * nodeSpacing;
-
-  // Adjust center based on the graph size
-  let center = [graph.getWidth() / 2, graph.getHeight() / 2];
-
-  // Update the layout configuration
-  graph.updateLayout({
-    nodeSpacing: nodeSpacing,
-    center: center,
-    // other layout parameters...
-  });
-
-  // Re-render the graph
-  graph.render();
 }

@@ -1,4 +1,4 @@
-import { adjustLayout } from '../utils/graphUtil';
+import { initializeGraph } from '../utils/graphUtil';
 
 /**
  * Handles the new graph effect.
@@ -9,16 +9,13 @@ import { adjustLayout } from '../utils/graphUtil';
 export function handleNewEffect(graph, graphData, allValues) {
   return (evt) => {
     if (evt.detail === 'new') {
-      // Reset graph data to empty state
-      graphData.nodes = [];
-      graphData.edges = [];
-      Object.keys(allValues).forEach(key => delete allValues[key]);
-
       if (graph) {
-        graph.data(graphData);
-        graph.render();
-        adjustLayout(graph);
-        graph.paint();
+        // Reset graph data to empty state
+        graphData.nodes = [];
+        graphData.edges = [];
+        Object.keys(allValues).forEach(key => delete allValues[key]);
+
+        initializeGraph(graph, graphData, false);
       }
     }
   };

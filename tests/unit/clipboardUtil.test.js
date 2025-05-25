@@ -1,6 +1,4 @@
 import {
-  copyToClipboard,
-  getFromClipboard,
   applyTemplate,
   getPromptTemplates
 } from '@/utils/clipboardUtil';
@@ -24,7 +22,10 @@ describe('Clipboard utilities', () => {
 
   it('should handle invalid template', () => {
     const content = "example content";
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const result = applyTemplate('invalidTemplate', content);
     expect(result).toBeNull();
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Template invalidTemplate not found");
+    consoleErrorSpy.mockRestore();
   });
 });
