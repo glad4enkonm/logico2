@@ -57,5 +57,16 @@ export const BUTTON_EVENTS = {
   OPEN: 'open',
   SAVE_AS: 'saveAs',
   RANDOM: 'random',
-  JSON_DONE: 'jsonDone',
+  JSON_DIFF_DONE: 'jsonDiffDone',
+};
+
+/**
+ * Default values for graph generation
+ * @type {Object}
+ * @property {number} DEFAULT_NODE_COUNT - Default number of nodes
+ * @property {number} DEFAULT_EDGE_COUNT - Default number of edges
+ */
+export const GRAPH_GENERATION_DEFAULTS = {
+  DEFAULT_NODE_COUNT: 5,
+  DEFAULT_EDGE_COUNT: 3,
 };

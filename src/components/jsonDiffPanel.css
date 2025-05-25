@@ -1,4 +1,4 @@
-.json-add-panel {
+.json-diff-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -9,8 +9,8 @@
   color: #E0E0E0;
 }
 
-.json-add-panel textarea,
-.json-add-panel select {
+.json-diff-panel textarea,
+.json-diff-panel select {
   width: 100%; /* Make both elements take full width */
   padding: 10px;
   border: 1px solid #343434;
@@ -22,14 +22,14 @@
   box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
 
-.json-add-panel .button-group {
+.json-diff-panel .button-group {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
 }
 
 @media (max-width: 600px) {
-  .json-add-panel .button-group {
+  .json-diff-panel .button-group {
     flex-direction: column;
     align-items: stretch;
   }

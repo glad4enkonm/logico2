@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import './jsonAddPanel.css';
+import './jsonDiffPanel.css';
 import Button from '@/components/Button';
 
-const JsonAddPanel = ({ graph, graphDataRef, allValuesRef, highlitedRef, onDone }) => {
+const JsonDiffPanel = ({ graph, graphDataRef, allValuesRef, highlitedRef, onDone }) => {
   const [inputJson, setInputJson] = useState('');
 
   const handleDone = () => {
@@ -12,7 +12,7 @@ const JsonAddPanel = ({ graph, graphDataRef, allValuesRef, highlitedRef, onDone 
   };
 
   return (
-    <div className="json-add-panel">
+    <div className="json-diff-panel">
       <div>
         <textarea
           value={inputJson}
@@ -30,4 +30,4 @@ const JsonAddPanel = ({ graph, graphDataRef, allValuesRef, highlitedRef, onDone 
 
 };
 
-export default JsonAddPanel;
+export default JsonDiffPanel;

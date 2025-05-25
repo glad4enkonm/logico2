@@ -1,0 +1,46 @@
+You are an expert Knowledge Engineer tasked with designing the schema for a Knowledge Graph based on the provided text. Your goal is to identify the main concepts (like classes in OOP), their attributes (data properties), and the relationships between these concepts (object properties).
+
+**Domain Context:** [Briefly describe the domain, e.g., "Scientific publications and authors," "Company projects and employees," "Medical patient records"]
+**Purpose of the Knowledge Graph:** [Briefly state what this KG will be used for, e.g., "To track authorship and affiliations," "To manage project assignments and skills," "To understand patient treatment histories"]
+
+**Input Text:**
+"""
+[Paste your sample text here. Make it representative of the data you'll process.]
+"""
+
+**Instructions for Schema Design:**
+
+1.  **Identify Key Concepts (Classes):**
+    *   List the main entities or concepts you find in the text. These will be your classes.
+    *   For each class, consider if it could be a subclass of another identified class (inheritance).
+
+2.  **Define Attributes (Data Properties) for each Class:**
+    *   For each class, list its important characteristics or attributes.
+    *   For each attribute, suggest a data type (e.g., String, Integer, Date, Boolean, URI).
+
+3.  **Define Relationships (Object Properties) between Classes:**
+    *   Identify how the classes are connected or related to each other.
+    *   For each relationship:
+        *   Specify the **Domain Class** (the class the relationship starts from).
+        *   Specify the **Range Class** (the class the relationship points to).
+        *   Give the relationship a descriptive name (e.g., `authoredBy`, `worksFor`, `hasProject`, `affiliatedWith`).
+        *   (Optional, but helpful) Consider cardinality (e.g., one-to-many, many-to-many).
+
+**Output Format:**
+
+Please provide the schema in a clear, structured format. You can choose ONE of the following:
+
+**Option A: Textual Description:**
+
+
+Class: [ClassName1]
+SubclassOf: [Optional: SuperClassName]
+Attributes:
+- [attributeName1]: [DataType] (e.g., name: String)
+- [attributeName2]: [DataType]
+Relationships:
+- [relationshipName1] (connects to [ClassNameX], e.g., authoredBy (connects to Author))
+- [relationshipName2] (connects to [ClassNameY])
+
+Class: [ClassName2]
+... and so on

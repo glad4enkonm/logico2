@@ -2,4 +2,4 @@ export { handleRandomEffect } from './random';
 export { handleNewEffect } from './new';
 export { handleSaveAsEffect } from './saveAs';
 export { handleOpenEffect } from './open';
-export { handleJsonEffect } from './json';
+export { handleJsonDiffEffect } from './json';

@@ -10,6 +10,8 @@ Logico2 is a React-based application for creating and visualizing formal graphs 
 - Responsive design for desktop and mobile
 - Text processing capabilities for creating graphs from LLM outputs
 
+![Example Image](ya.png)
+
 ## Project Structure
 
 ```

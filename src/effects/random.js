@@ -1,4 +1,5 @@
 import { generateRandomGraph, initializeGraph } from '../utils/graphUtil';
+import { GRAPH_GENERATION_DEFAULTS } from '../constants/appConstants';
 
 /**
  * Handles the random graph generation effect.
@@ -16,7 +17,12 @@ export function handleRandomEffect(graph, graphDataRef, allValuesRef, highlitedR
       // const { graphData: newGraphDataContent, allValues: newAllValues } = generateRandomGraphData(graph);
       // For now, sticking to the original generateRandomGraph if it's different.
       // Assuming generateRandomGraph is the intended source here:
-      const { nodes, edges, allValues: newAllValuesData } = generateRandomGraph(30, 60); // Original call
+
+      // Use default values from constants
+      const { nodes, edges, allValues: newAllValuesData } = generateRandomGraph(
+        GRAPH_GENERATION_DEFAULTS.DEFAULT_NODE_COUNT,
+        GRAPH_GENERATION_DEFAULTS.DEFAULT_EDGE_COUNT
+      );
 
       graphDataRef.current.nodes = nodes;
       graphDataRef.current.edges = edges;

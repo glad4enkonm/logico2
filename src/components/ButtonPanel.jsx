@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import './buttonPanel.css';
 import Button from '@/components/Button';
 import ClipboardPanel from '@/components/ClipboardPanel';
-import JsonAddPanel from '@/components/JsonAddPanel';
+import JsonDiffPanel from '@/components/JsonDiffPanel';
 import { BUTTON_EVENTS } from '@/constants/appConstants';
 
 const ButtonPanel = () => {
   const [showClipboard, setShowClipboard] = useState(false);
-  const [showJsonAdd, setShowJsonAdd] = useState(false);
+  const [showJsonDiff, setShowJsonDiff] = useState(false);
 
   return (
     <div className="button-panel">
@@ -50,8 +50,8 @@ const ButtonPanel = () => {
           enabled={true}
         />
         <Button
-          onClick={() => setShowJsonAdd(!showJsonAdd)}
-          text="JSON Add"
+          onClick={() => setShowJsonDiff(!showJsonDiff)}
+          text="JSON Diff"
           enabled={true}
         />
       </div>
@@ -60,14 +60,14 @@ const ButtonPanel = () => {
           <ClipboardPanel />
         </div>
       )}
-      {showJsonAdd && (
+      {showJsonDiff && (
         <div className="json-panel-container">
           <div>
-            <JsonAddPanel              
+            <JsonDiffPanel
               onDone={(jsonData) => {
-                const event = new CustomEvent('buttonClick', { detail: { type: BUTTON_EVENTS.JSON_DONE, jsonData } });
+                const event = new CustomEvent('buttonClick', { detail: { type: BUTTON_EVENTS.JSON_DIFF_DONE, jsonData } });
                 window.dispatchEvent(event);
-                setShowJsonAdd(false);
+                setShowJsonDiff(false);
               }}
             />
           </div>
@@ -75,7 +75,6 @@ const ButtonPanel = () => {
       )}
     </div>
   );
-
 };
 
 export default ButtonPanel;

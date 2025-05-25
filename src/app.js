@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import RightPanel from '@/components/RightPanel';
 import G6 from '@antv/g6';
-import { handleRandomEffect, handleNewEffect, handleSaveAsEffect, handleOpenEffect, handleJsonEffect } from '@/effects';
+import { handleRandomEffect, handleNewEffect, handleSaveAsEffect, handleOpenEffect, handleJsonDiffEffect } from '@/effects';
 import { initializeGraph } from '@/utils/graphUtil';
 import {
   HIGHLIGHT_STYLE,
@@ -135,7 +135,7 @@ export function App() {
     const newHandler = handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current); // Keeping old signature for now
     const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be read inside
     const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be mutated inside
-    const jsonHandler = handleJsonEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
+    const jsonHandler = handleJsonDiffEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
 
     const handleButtonClick = (evt) => {
       const eventType = evt.detail && evt.detail.type ? evt.detail.type : evt.detail; // Handle both old and new event detail formats
@@ -153,9 +153,9 @@ export function App() {
           openHandler(evt); // This will update graphDataRef.current and allValuesRef.current
           break;
         case BUTTON_EVENTS.JSON:
-          // JSON Add button is now handled in ButtonPanel
+          // JSON Diff button is now handled in ButtonPanel
           break;
-        case BUTTON_EVENTS.JSON_DONE:
+        case BUTTON_EVENTS.JSON_DIFF_DONE:
           const { jsonData } = evt.detail || {}; // Destructure jsonData with a fallback for safety
           if (!jsonData) {
             console.warn('jsonHandler called without jsonData in event detail:', evt);

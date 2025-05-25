@@ -1,0 +1,45 @@
+The structure used in 'src/utils/graphUtil.js' to apply changes is defined in the `applyGraphChanges` function. 
+
+The changes object has the following structure:
+
+- `nodes`: Array of nodes to add or update
+- `edges`: Array of edges to add or update
+- `allValues`: Key-value pairs to add/update for specific node/edge IDs
+- `toDelete`: Object containing IDs of items to delete
+  - `nodes`: Array of node IDs to delete
+  - `edges`: Array of edge IDs to delete
+  - `allValues`: Object mapping entity IDs to arrays of keys to delete from their allValues
+
+Example of a changes object with maximum content:
+```json
+{
+  "nodes": [
+    { "id": "Node1", "label": "Updated Node 1" },
+    { "id": "Node3", "label": "New Node 3" }
+  ],
+  "edges": [
+    { "id": "Node1-Node2", "source": "Node1", "target": "Node2", "label": "Updated Edge" },
+    { "id": "Node3-Node4", "source": "Node3", "target": "Node4", "label": "New Edge" }
+  ],
+  "allValues": {
+    "Node1": { "key1": "newValue1", "key2": "newValue2" },
+    "Node3": { "keyA": "valueA" }
+  },
+  "toDelete": {
+    "nodes": ["Node2"],
+    "edges": ["Node1-Node2"],
+    "allValues": {
+      "Node1": ["keyToDelete"],
+      "Node3": ["unwantedKey"]
+    }
+  }
+}
+```
+
+How to create, delete, or override a graph:
+1. Create a new graph: Provide initial nodes and edges in the changes object.
+2. Delete elements: Specify IDs in the toDelete object:
+   - `toDelete.nodes`: Array of node IDs to delete
+   - `toDelete.edges`: Array of edge IDs to delete
+   - `toDelete.allValues`: Object mapping entity IDs to arrays of keys to delete
+3. Override existing elements: Provide updated information in the nodes, edges, or allValues objects.

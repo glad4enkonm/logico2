@@ -1,4 +1,4 @@
-import { initializeGraph } from '@/utils/graphUtil';
+import { initializeGraph, applyGraphChanges } from '@/utils/graphUtil';
 
 /**
  * Handles the JSON data effect.
@@ -7,27 +7,38 @@ import { initializeGraph } from '@/utils/graphUtil';
  * @param {Object} allValuesRef - Reference to the allValues store (e.g., a ref's .current object).
  * @param {Object} highlitedRef - Reference to the highlighted elements store (e.g., a ref object).
  */
-export function handleJsonEffect(graph, graphDataRef, allValuesRef, highlitedRef) {
+export function handleJsonDiffEffect(graph, graphDataRef, allValuesRef, highlitedRef) {
   return (jsonData) => {
     try {
       const data = JSON.parse(jsonData);
-      const { nodes, edges, allValues } = data;
+      const { nodes, edges, allValues, toDelete } = data;
 
-      if (nodes && edges && allValues) {
-        graphDataRef.current.nodes = nodes;
-        graphDataRef.current.edges = edges;
-        allValuesRef.current = allValues;
-
-        if (graph) {
-          initializeGraph(graph, graphDataRef.current, true);
-
-          if (highlitedRef && highlitedRef.current) {
-            highlitedRef.current.nodes = [];
-            highlitedRef.current.edges = [];
-          }
-        }
-      } else {
+      // Check if any of the required fields are present
+      if (!nodes && !edges && !allValues && !toDelete) {
         alert('Invalid JSON format. Please provide valid graph data.');
+        return;
+      }
+
+      // Apply changes incrementally instead of replacing entire structure
+      const changes = {
+        nodes,
+        edges,
+        allValues,
+        toDelete
+      };
+
+      const newGraphData = applyGraphChanges(graphDataRef.current, changes);
+      graphDataRef.current.nodes = newGraphData.nodes;
+      graphDataRef.current.edges = newGraphData.edges;
+      allValuesRef.current = newGraphData.allValues;
+
+      if (graph) {
+        initializeGraph(graph, graphDataRef.current, true);
+
+        if (highlitedRef && highlitedRef.current) {
+          highlitedRef.current.nodes = [];
+          highlitedRef.current.edges = [];
+        }
       }
     } catch (error) {
       alert('Invalid JSON format. Please check your input.');

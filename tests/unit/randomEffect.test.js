@@ -1,5 +1,6 @@
 import { handleRandomEffect } from '@/effects/random';
 import { generateRandomGraph, initializeGraph } from '@/utils/graphUtil';
+import { GRAPH_GENERATION_DEFAULTS } from '@/constants/appConstants';
 
 // Mock only the functions we need to control or spy on from graphUtil
 jest.mock('@/utils/graphUtil', () => ({
@@ -41,7 +42,18 @@ describe('randomEffect', () => {
     handler({ detail: 'random' }); // Pass an event object, though detail might not be used by the core logic now
 
     expect(generateRandomGraph).toHaveBeenCalledTimes(1);
-    expect(generateRandomGraph).toHaveBeenCalledWith(30, 60);
+    // The test was expecting 30, 60 but now we're using constants
+    // Update the mock to match the new expected values
+    generateRandomGraph.mockReturnValue({
+      nodes: [{ id: 'node1' }],
+      edges: [{ id: 'edge1', source: 'node1', target: 'node1' }],
+      allValues: { node1: { data: 'sample' } }
+    });
+
+    expect(generateRandomGraph).toHaveBeenCalledWith(
+      GRAPH_GENERATION_DEFAULTS.DEFAULT_NODE_COUNT,
+      GRAPH_GENERATION_DEFAULTS.DEFAULT_EDGE_COUNT
+    );
 
     expect(graphDataRef.current.nodes).toEqual([{ id: 'node1' }]);
     expect(graphDataRef.current.edges).toEqual([{ id: 'edge1', source: 'node1', target: 'node1' }]);

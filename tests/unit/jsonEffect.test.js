@@ -1,7 +1,18 @@
-import { handleJsonEffect } from '@/effects/json';
-import { initializeGraph } from '@/utils/graphUtil';
+import { handleJsonDiffEffect } from '../../src/effects/json';
+import { initializeGraph } from '../../src/utils/graphUtil';
 
-jest.mock('@/utils/graphUtil');
+jest.mock('../../src/utils/graphUtil', () => ({
+  initializeGraph: jest.fn(),
+  applyGraphChanges: jest.fn((currentData, changes) => {
+    // Return a structure that mimics the output of applyGraphChanges
+    // based on the input changes for testing purposes.
+    return {
+      nodes: changes.nodes || (currentData ? currentData.nodes : []),
+      edges: changes.edges || (currentData ? currentData.edges : []),
+      allValues: changes.allValues || (currentData ? currentData.allValues : {}),
+    };
+  }),
+}));
 
 describe('jsonEffect', () => {
   let mockGraph;
@@ -15,7 +26,7 @@ describe('jsonEffect', () => {
     mockGraphDataRef = { current: { nodes: [], edges: [] } };
     mockAllValuesRef = { current: {} };
     mockHighlitedRef = { current: { nodes: ['node1'], edges: ['edge1'] } };
-    jsonHandler = handleJsonEffect(mockGraph, mockGraphDataRef, mockAllValuesRef, mockHighlitedRef);
+    jsonHandler = handleJsonDiffEffect(mockGraph, mockGraphDataRef, mockAllValuesRef, mockHighlitedRef);
     initializeGraph.mockClear();
   });
 
@@ -71,10 +82,11 @@ describe('jsonEffect', () => {
     alertSpy.mockRestore();
   });
 
-  it('should throw error for JSON missing required fields', () => {
+  it('should throw error for JSON missing all required fields', () => {
     const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
-    jsonHandler(JSON.stringify({ nodes: [], edges: [] })); // Missing allValues
+    // Test with empty object - no fields at all
+    jsonHandler(JSON.stringify({}));
 
     expect(alertSpy).toHaveBeenCalledWith('Invalid JSON format. Please provide valid graph data.');
 
