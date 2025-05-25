@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import ClipboardPanel from '../../src/components/ClipboardPanel';
+import ClipboardPanel from '@/components/ClipboardPanel';
 import {
   copyToClipboard,
   getFromClipboard,
   applyTemplate,
   getPromptTemplates
-} from '../../src/utils/clipboardUtil';
+} from '@/utils/clipboardUtil';
 
 jest.mock('../../src/utils/clipboardUtil', () => ({
   copyToClipboard: jest.fn().mockResolvedValue(undefined),

@@ -1,8 +1,8 @@
 {
-  "name": "logico",
+  "name": "logico2",
   "version": "1.0.0",
   "license": "MIT",
-  "source": "src/index.html",
+  "source": "public/index.html",
   "devDependencies": {
     "@babel/core": "^7.27.1",
     "@babel/plugin-transform-modules-commonjs": "^7.27.1",
@@ -10,6 +10,7 @@
     "@babel/preset-react": "^7.27.1",
     "@testing-library/jest-dom": "^5.16.0",
     "@testing-library/react": "^13.0.0",
+    "babel-plugin-module-resolver": "^5.0.2",
     "canvas": "^3.1.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^29.0.0",

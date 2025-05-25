@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import RightPanel from './components/rightPanel';
-import ButtonPanel from './components/ButtonPanel';
+import RightPanel from '@/components/RightPanel';
+import ButtonPanel from '@/components/ButtonPanel';
 import G6 from '@antv/g6';
-import { handleRandomEffect, handleNewEffect, handleSaveAsEffect } from './effects';
-
-// Define the highlight styles for the edge and nodes
-const highlightStyle = {
-  stroke: '#03DAC6', // Highlight color for the edge
-  // Additional styles if needed
-};
-
-const defaultStyle = {
-  stroke: "#343434", // Borders and dividers color for edges
-};
-const defaultNodeStyle = {
-  stroke: "#BB86FC"
-};
+import { handleRandomEffect, handleNewEffect, handleSaveAsEffect, handleOpenEffect } from '@/effects';
+import {
+  HIGHLIGHT_STYLE,
+  DEFAULT_EDGE,
+  DEFAULT_NODE,
+  GRAPH_LAYOUT_OPTIONS,
+  GRAPH_MODES,
+  BUTTON_EVENTS
+} from '@/constants/appConstants';
 
 const highlited = { nodes: [], edges: [] };
 
@@ -42,51 +37,10 @@ export function App() {
         container: ref.current,
         width: width - 300,
         height: height * 0.95,
-        modes: {
-          default: ['drag-canvas', 'drag-node', 'zoom-canvas']
-        },
-        defaultNode: {
-          type: "circle",
-          size: [100],
-          color: "#BB86FC", // Accent Color for the border of the nodes
-          style: {
-            fill: "#121212", // Dark background color for nodes
-            lineWidth: 3,
-            stroke: "#BB86FC", // Optional: if you want the node border to have the accent color
-          },
-          labelCfg: {
-            style: {
-              fill: "#E0E0E0", // Primary text color for labels
-              fontSize: 20
-            }
-          }
-        },
-        defaultEdge: {
-          style: {
-            stroke: "#343434", // Borders and dividers color for edges
-          },
-          labelCfg: {
-            style: {
-              fill: "#E0E0E0", // Primary text color for labels
-              fontSize: 20
-            }
-          }
-        },
-        layout: {
-          type: 'gForce',
-          center: [700, 700], // The center of the graph by default
-          preventOverlap: true,
-          coulombDisScale: 0.0015,
-          nodeSpacing: 50,
-          onTick: () => {
-            console.log('ticking');
-          },
-          onLayoutEnd: () => {
-            console.log('force layout done');
-          },
-          workerEnabled: true, // Whether to activate web-worker
-          //gpuEnabled: true     // Whether to enable the GPU parallel computing, supported by G6 4.0
-        },
+        modes: GRAPH_MODES,
+        defaultNode: DEFAULT_NODE,
+        defaultEdge: DEFAULT_EDGE,
+        layout: GRAPH_LAYOUT_OPTIONS,
       });
     }
 
@@ -103,7 +57,7 @@ export function App() {
 
       const elements = highlited.edges.concat(highlited.nodes);
       elements.forEach(el => graph.updateItem(el, {
-        style: highlightStyle,
+        style: HIGHLIGHT_STYLE,
       }));
 
       graph.paint();
@@ -138,7 +92,7 @@ export function App() {
       // Apply the highlight style to all highlighted elements
       const elements = highlited.edges.concat(highlited.nodes);
       elements.forEach(el => graph.updateItem(el, {
-        style: highlightStyle,
+        style: HIGHLIGHT_STYLE,
       }));
 
       graph.paint();
@@ -149,11 +103,11 @@ export function App() {
       setSelectedElementValues({});
       setSelectedElementLabel("");
       highlited.edges.forEach(el => graph.updateItem(el, {
-        style: defaultStyle,
+        style: DEFAULT_EDGE.style,
       }));
 
       highlited.nodes.forEach(el => graph.updateItem(el, {
-        style: defaultNodeStyle,
+        style: DEFAULT_NODE.style,
       }));
 
       highlited.edges = [];
@@ -169,14 +123,24 @@ export function App() {
     const handleRandomClick = handleRandomEffect(graph, graphData, allValues);
     const handleNewClick = handleNewEffect(graph, graphData, allValues);
     const handleSaveAsClick = handleSaveAsEffect(graph, graphData);
+    const handleOpenClick = handleOpenEffect(graph, graphData, allValues);
 
     const handleButtonClick = (evt) => {
-      if (evt.detail === 'random') {
-        handleRandomClick(evt);
-      } else if (evt.detail === 'new') {
-        handleNewClick(evt);
-      } else if (evt.detail === 'saveAs') {
-        handleSaveAsClick(evt);
+      switch (evt.detail) {
+        case BUTTON_EVENTS.RANDOM:
+          handleRandomClick(evt);
+          break;
+        case BUTTON_EVENTS.NEW:
+          handleNewClick(evt);
+          break;
+        case BUTTON_EVENTS.SAVE_AS:
+          handleSaveAsClick(evt);
+          break;
+        case BUTTON_EVENTS.OPEN:
+          handleOpenClick(evt);
+          break;
+        default:
+          break;
       }
     };
 
@@ -188,8 +152,8 @@ export function App() {
   }, [graph]);
 
   return (
-    <div>
-      <div ref={ref}>
+    <div style={{ display: 'flex', height: '100vh' }}>
+      <div ref={ref} style={{ flex: 1 }}>
       </div>
       <RightPanel data={selectedElementValues} caption={selectedElementLabel} />
     </div>

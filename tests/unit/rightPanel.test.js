@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import RightPanel from '../../src/components/rightPanel';
+import RightPanel from '@/components/RightPanel';
 
 describe('RightPanel component', () => {
   const testData = {

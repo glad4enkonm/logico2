@@ -3,7 +3,7 @@ import {
   getFromClipboard,
   applyTemplate,
   getPromptTemplates
-} from '../../src/utils/clipboardUtil';
+} from '@/utils/clipboardUtil';
 
 describe('Clipboard utilities', () => {
   it('should provide prompt templates', () => {

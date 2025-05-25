@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import ButtonPanel from '../../src/components/ButtonPanel';
+import ButtonPanel from '@/components/ButtonPanel';
 
 describe('ButtonPanel component', () => {
   test('renders all buttons with correct text', () => {
@@ -30,7 +30,7 @@ describe('ButtonPanel component', () => {
     expect(eventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
     const event2 = eventSpy.mock.calls[0][0];
     expect(event2.type).toBe('buttonClick');
-    expect(event2.detail).toBe(1);
+    expect(event2.detail).toBe('open');
 
     eventSpy.mockReset();
 

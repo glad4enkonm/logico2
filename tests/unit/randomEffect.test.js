@@ -1,5 +1,5 @@
-import { handleRandomEffect } from '../../src/effects/random';
-import { generateRandomGraph, adjustLayout } from '../../src/utils/graphUtil';
+import { handleRandomEffect } from '@/effects/random';
+import { generateRandomGraph, adjustLayout } from '@/utils/graphUtil';
 
 jest.mock('../../src/utils/graphUtil');
 

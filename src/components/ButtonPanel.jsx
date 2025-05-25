@@ -1,21 +1,10 @@
 import React, { useState } from 'react';
 import './buttonPanel.css';
-import './clipboardPanel.css';
-import Button from './Button';
-import ClipboardPanel from './ClipboardPanel';
+import Button from '@/components/Button';
+import ClipboardPanel from '@/components/ClipboardPanel';
 
 const ButtonPanel = () => {
   const [showClipboard, setShowClipboard] = useState(false);
-
-  const handleClick = (buttonNumber) => {
-    console.log(`Button ${buttonNumber} clicked`);
-
-    // Dispatch a custom event for the button click
-    if (buttonNumber === 1 || buttonNumber === 2) {
-      const event = new CustomEvent('buttonClick', { detail: buttonNumber });
-      window.dispatchEvent(event);
-    }
-  };
 
   return (
     <div className="button-panel">
@@ -29,7 +18,10 @@ const ButtonPanel = () => {
           enabled={true}
         />
         <Button
-          onClick={() => handleClick(1)}
+          onClick={() => {
+            const event = new CustomEvent('buttonClick', { detail: 'open' });
+            window.dispatchEvent(event);
+          }}
           text="Open"
           enabled={true}
         />

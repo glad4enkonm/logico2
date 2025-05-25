@@ -1,6 +1,6 @@
 import React from 'react';
 import './rightPanel.css';
-import ButtonPanel from './ButtonPanel';
+import ButtonPanel from '@/components/ButtonPanel';
 
 const RightPanel = ({data, caption}) => {
   return (

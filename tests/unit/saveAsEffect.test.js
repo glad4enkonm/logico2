@@ -1,4 +1,4 @@
-import { handleSaveAsEffect } from '../../src/effects/saveAs';
+import { handleSaveAsEffect } from '@/effects/saveAs';
 
 describe('saveAsEffect', () => {
   let graphMock;

@@ -1,4 +1,4 @@
-import { generateRandomGraph, adjustLayout } from '../../src/utils/graphUtil';
+import { generateRandomGraph, adjustLayout } from '@/utils/graphUtil';
 import G6 from '@antv/g6';
 
 jest.mock('@antv/g6', () => {

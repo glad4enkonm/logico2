@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import Button from './Button';
+import './clipboardPanel.css';
+import Button from '@/components/Button';
 import {
   copyToClipboard,
   getFromClipboard,
   applyTemplate,
   getPromptTemplates
-} from '../utils/clipboardUtil';
+} from '@/utils/clipboardUtil';
 
 const ClipboardPanel = () => {
   const [inputText, setInputText] = useState('');
