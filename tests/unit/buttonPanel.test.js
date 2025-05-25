@@ -21,7 +21,7 @@ describe('ButtonPanel component', () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     fireEvent.click(screen.getByText('New'));
-    expect(logSpy).toHaveBeenCalledWith('Button 4 clicked');
+    expect(logSpy).toHaveBeenCalledWith('Button new clicked');
 
     fireEvent.click(screen.getByText('Open'));
     expect(logSpy).toHaveBeenCalledWith('Button 1 clicked');
