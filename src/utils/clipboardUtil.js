@@ -1,7 +1,10 @@
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 
 // Prompt templates
 const promptTemplates = {
+  extractAndApplyGraphChanges: fs.readFileSync(path.join(__dirname, '../../prompt/extractAndApplyGraphChanges.txt'), 'utf8'),
   template1: "Explain this in simple terms: {content}",
   template2: "Generate a summary of: {content}",
   template3: "Translate to French: {content}",
@@ -9,8 +12,16 @@ const promptTemplates = {
 };
 
 // Function to copy text to clipboard
-export const copyToClipboard = (text) => {
-  navigator.clipboard.writeText(text).then(() => {
+export const copyToClipboard = (templateKey, content) => {
+  if (!promptTemplates[templateKey]) {
+    console.error(`Template ${templateKey} not found`);
+    return;
+  }
+
+  const template = promptTemplates[templateKey];
+  const prompt = template.replace('[content]', content);
+
+  navigator.clipboard.writeText(prompt).then(() => {
     console.log('Text copied to clipboard');
   }).catch(err => {
     console.error('Failed to copy text: ', err);

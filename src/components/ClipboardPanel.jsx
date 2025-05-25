@@ -3,7 +3,6 @@ import './clipboardPanel.css';
 import Button from '@/components/Button';
 import {
   copyToClipboard,
-  getFromClipboard,
   applyTemplate,
   getPromptTemplates
 } from '@/utils/clipboardUtil';
@@ -33,7 +32,7 @@ const ClipboardPanel = () => {
   }, [selectedTemplate, inputText]);
 
   const handleCopy = () => {
-    copyToClipboard(outputText || inputText);
+    copyToClipboard(selectedTemplate, inputText);
   };
 
   const handleTemplateChange = (e) => {
@@ -49,15 +48,6 @@ const ClipboardPanel = () => {
   return (
     <div className="clipboard-panel">
       <div>
-        <textarea
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder="Enter text here"
-          rows="4"
-          cols="50"
-        />
-      </div>
-      <div>
         <select value={selectedTemplate} onChange={handleTemplateChange}>
           <option value="">Select template</option>
           {Object.keys(templates).map((key) => (
@@ -67,6 +57,15 @@ const ClipboardPanel = () => {
           ))}
         </select>
       </div>
+      <div>
+        <textarea
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          placeholder="Enter text here"
+          rows="4"
+          cols="50"
+        />
+      </div>      
       <div>
         <textarea
           value={outputText}

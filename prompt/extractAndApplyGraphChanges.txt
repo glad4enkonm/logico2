@@ -1,0 +1,106 @@
+You are an expert Knowledge Engineer tasked with designing the schema for a Knowledge Graph based on the provided text. Your goal is to identify the main concepts (like classes in OOP), their attributes (data properties), and the relationships between these concepts (object properties). After extracting the structure, you will format it as a changes object to be applied to the graph.
+
+**Domain Context:** [Briefly describe the domain, e.g., "Scientific publications and authors," "Company projects and employees," "Medical patient records"]
+**Purpose of the Knowledge Graph:** [Briefly state what this KG will be used for, e.g., "To track authorship and affiliations," "To manage project assignments and skills," "To understand patient treatment histories"]
+
+**Input Text:**
+"""
+[content]
+"""
+
+**Instructions for Schema Design:**
+
+1.  **Identify Key Concepts (Classes):**
+    *   List the main entities or concepts you find in the text. These will be your classes.
+    *   For each class, consider if it could be a subclass of another identified class (inheritance).
+
+2.  **Define Attributes (Data Properties) for each Class:**
+    *   For each class, list its important characteristics or attributes.
+    *   For each attribute, suggest a data type (e.g., String, Integer, Date, Boolean, URI).
+
+3.  **Define Relationships (Object Properties) between Classes:**
+    *   Identify how the classes are connected or related to each other.
+    *   For each relationship:
+        *   Specify the **Domain Class** (the class the relationship starts from).
+        *   Specify the **Range Class** (the class the relationship points to).
+        *   Give the relationship a descriptive name (e.g., `authoredBy`, `worksFor`, `hasProject`, `affiliatedWith`).
+        *   (Optional, but helpful) Consider cardinality (e.g., one-to-many, many-to-many).
+
+**Output Format:**
+
+Please provide the extracted schema in the following format, which will be used to create a changes object for the graph:
+
+```
+Class: [ClassName1]
+SubclassOf: [Optional: SuperClassName]
+Attributes:
+- [attributeName1]: [DataType] (e.g., name: String)
+- [attributeName2]: [DataType]
+Relationships:
+- [relationshipName1] (connects to [ClassNameX], e.g., authoredBy (connects to Author))
+- [relationshipName2] (connects to [ClassNameY])
+
+Class: [ClassName2]
+... and so on
+```
+
+**After extracting the schema, convert it to a changes object with the following structure:**
+
+The changes object has the following structure:
+
+- `nodes`: Array of nodes to add or update
+- `edges`: Array of edges to add or update
+- `allValues`: Key-value pairs to add/update for specific node/edge IDs
+- `toDelete`: Object containing IDs of items to delete
+  - `nodes`: Array of node IDs to delete
+  - `edges`: Array of edge IDs to delete
+  - `allValues`: Object mapping entity IDs to arrays of keys to delete from their allValues
+
+Example of a changes object with maximum content:
+```json
+{
+  "nodes": [
+    { "id": "Node1", "label": "Updated Node 1" },
+    { "id": "Node3", "label": "New Node 3" }
+  ],
+  "edges": [
+    { "id": "Node1-Node2", "source": "Node1", "target": "Node2", "label": "Updated Edge" },
+    { "id": "Node3-Node4", "source": "Node3", "target": "Node4", "label": "New Edge" }
+  ],
+  "allValues": {
+    "Node1": { "key1": "newValue1", "key2": "newValue2" },
+    "Node3": { "keyA": "valueA" }
+  },
+  "toDelete": {
+    "nodes": ["Node2"],
+    "edges": ["Node1-Node2"],
+    "allValues": {
+      "Node1": ["keyToDelete"],
+      "Node3": ["unwantedKey"]
+    }
+  }
+}
+```
+
+**How to create the changes object:**
+
+1. For each class identified, create a node with:
+   - `id`: A unique identifier for the class (e.g., "ClassName1")
+   - `label`: The class name
+
+2. For each attribute of a class, add it to the `allValues` object:
+   - Key: The class ID
+   - Value: An object with attribute name as key and data type as value
+
+3. For each relationship between classes, create an edge with:
+   - `id`: A unique identifier for the relationship (e.g., "ClassName1-ClassName2")
+   - `source`: The domain class ID
+   - `target`: The range class ID
+   - `label`: The relationship name
+
+4. If there are any deletions needed, specify them in the `toDelete` object:
+   - `toDelete.nodes`: Array of node IDs to delete
+   - `toDelete.edges`: Array of edge IDs to delete
+   - `toDelete.allValues`: Object mapping entity IDs to arrays of keys to delete
+
+**Important:** Your response should be a plain JSON text without any comments or formatting (no ```json ```). Only include the changes object structure as described above as plain text.
