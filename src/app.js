@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import RightPanel from '@/components/RightPanel';
 import G6 from '@antv/g6';
-import { handleRandomEffect, handleNewEffect, handleSaveAsEffect, handleOpenEffect } from '@/effects';
+import { handleRandomEffect, handleNewEffect, handleSaveAsEffect, handleOpenEffect, handleJsonEffect } from '@/effects';
 import { initializeGraph } from '@/utils/graphUtil';
 import {
   HIGHLIGHT_STYLE,
@@ -11,19 +11,12 @@ import {
   BUTTON_EVENTS
 } from '@/constants/appConstants';
 
-// Note: The `highlitedRef` (previously `highlited` as a module-level variable)
-// is now managed as a ref within the App component. This improves encapsulation.
-// It's used for direct G6 updates without triggering re-renders, which is suitable
-// for this use case where changes are applied directly to the G6 graph instance.
-
-
-
 export function App() {
- const containerRef = useRef(null); // For the G6 graph container DOM element
- const graphRef = useRef(null); // To hold the G6 graph instance
- const graphDataRef = useRef({ nodes: [], edges: [] }); // To hold the current graph data
- const allValuesRef = useRef({}); // To hold key-value data for nodes/edges
- const highlitedRef = useRef({ nodes: [], edges: [] }); // To hold highlighted elements
+  const containerRef = useRef(null); // For the G6 graph container DOM element
+  const graphRef = useRef(null); // To hold the G6 graph instance
+  const graphDataRef = useRef({ nodes: [], edges: [] }); // To hold the current graph data
+  const allValuesRef = useRef({}); // To hold key-value data for nodes/edges
+  const highlitedRef = useRef({ nodes: [], edges: [] }); // To hold highlighted elements
 
   const [selectedElementValues, setSelectedElementValues] = useState({});
   const [selectedElementLabel, setSelectedElementLabel] = useState("Select element");
@@ -55,7 +48,7 @@ export function App() {
       const edgeClickHandler = (e) => {
         setSelectedElementValues(allValuesRef.current[e.item._cfg.id] || {});
         setSelectedElementLabel(e.item._cfg.model.label || "Edge");
-        
+
         // Clear previous highlights before applying new ones for simplicity
         highlitedRef.current.edges.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_EDGE.style }));
         highlitedRef.current.nodes.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_NODE.style }));
@@ -80,7 +73,7 @@ export function App() {
         highlitedRef.current.nodes.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_NODE.style }));
         highlitedRef.current.edges = [];
         highlitedRef.current.nodes = [];
-        
+
         highlitedRef.current.nodes.push(node);
 
         const connectedEdges = currentGraph.getEdges().filter(edge =>
@@ -142,9 +135,11 @@ export function App() {
     const newHandler = handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current); // Keeping old signature for now
     const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be read inside
     const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be mutated inside
+    const jsonHandler = handleJsonEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
 
     const handleButtonClick = (evt) => {
-      switch (evt.detail) {
+      const eventType = evt.detail && evt.detail.type ? evt.detail.type : evt.detail; // Handle both old and new event detail formats
+      switch (eventType) {
         case BUTTON_EVENTS.RANDOM:
           randomHandler(evt);
           break;
@@ -156,6 +151,18 @@ export function App() {
           break;
         case BUTTON_EVENTS.OPEN:
           openHandler(evt); // This will update graphDataRef.current and allValuesRef.current
+          break;
+        case BUTTON_EVENTS.JSON:
+          // JSON Add button is now handled in ButtonPanel
+          break;
+        case BUTTON_EVENTS.JSON_DONE:
+          const { jsonData } = evt.detail || {}; // Destructure jsonData with a fallback for safety
+          if (!jsonData) {
+            console.warn('jsonHandler called without jsonData in event detail:', evt);
+            // Optionally, throw an error or dispatch an error event here for more robust handling
+            return; // Early exit to prevent further processing with missing data
+          }
+          jsonHandler(jsonData);
           break;
         default:
           break;
@@ -169,12 +176,17 @@ export function App() {
     };
   }, [graphRef.current]); // Rerun if graphRef.current changes (e.g., if it were re-initialized)
 
+  // handleJsonDone is no longer needed as we're using the event system
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <div ref={containerRef} style={{ flex: 1 }}>
         {/* G6 Graph is mounted here by the G6.Graph constructor */}
       </div>
-      <RightPanel data={selectedElementValues} caption={selectedElementLabel} />
+      <RightPanel
+        data={selectedElementValues}
+        caption={selectedElementLabel}
+      />
     </div>
   );
 }

@@ -2,16 +2,19 @@ import React, { useState } from 'react';
 import './buttonPanel.css';
 import Button from '@/components/Button';
 import ClipboardPanel from '@/components/ClipboardPanel';
+import JsonAddPanel from '@/components/JsonAddPanel';
+import { BUTTON_EVENTS } from '@/constants/appConstants';
 
 const ButtonPanel = () => {
   const [showClipboard, setShowClipboard] = useState(false);
+  const [showJsonAdd, setShowJsonAdd] = useState(false);
 
   return (
     <div className="button-panel">
       <div className="button-group">
         <Button
           onClick={() => {
-            const event = new CustomEvent('buttonClick', { detail: 'new' });
+            const event = new CustomEvent('buttonClick', { detail: BUTTON_EVENTS.NEW });
             window.dispatchEvent(event);
           }}
           text="New"
@@ -19,7 +22,7 @@ const ButtonPanel = () => {
         />
         <Button
           onClick={() => {
-            const event = new CustomEvent('buttonClick', { detail: 'open' });
+            const event = new CustomEvent('buttonClick', { detail: BUTTON_EVENTS.OPEN });
             window.dispatchEvent(event);
           }}
           text="Open"
@@ -27,7 +30,7 @@ const ButtonPanel = () => {
         />
         <Button
           onClick={() => {
-            const event = new CustomEvent('buttonClick', { detail: 'saveAs' });
+            const event = new CustomEvent('buttonClick', { detail: BUTTON_EVENTS.SAVE_AS });
             window.dispatchEvent(event);
           }}
           text="Save as"
@@ -35,7 +38,7 @@ const ButtonPanel = () => {
         />
         <Button
           onClick={() => {
-            const event = new CustomEvent('buttonClick', { detail: 'random' });
+            const event = new CustomEvent('buttonClick', { detail: BUTTON_EVENTS.RANDOM });
             window.dispatchEvent(event);
           }}
           text="Random"
@@ -46,14 +49,33 @@ const ButtonPanel = () => {
           text="LLM Clipboard"
           enabled={true}
         />
+        <Button
+          onClick={() => setShowJsonAdd(!showJsonAdd)}
+          text="JSON Add"
+          enabled={true}
+        />
       </div>
       {showClipboard && (
         <div className="clipboard-panel-container">
           <ClipboardPanel />
         </div>
       )}
+      {showJsonAdd && (
+        <div className="json-panel-container">
+          <div>
+            <JsonAddPanel              
+              onDone={(jsonData) => {
+                const event = new CustomEvent('buttonClick', { detail: { type: BUTTON_EVENTS.JSON_DONE, jsonData } });
+                window.dispatchEvent(event);
+                setShowJsonAdd(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
+
 };
 
 export default ButtonPanel;

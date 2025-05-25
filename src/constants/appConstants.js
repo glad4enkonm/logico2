@@ -57,4 +57,5 @@ export const BUTTON_EVENTS = {
   OPEN: 'open',
   SAVE_AS: 'saveAs',
   RANDOM: 'random',
+  JSON_DONE: 'jsonDone',
 };
