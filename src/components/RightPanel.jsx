@@ -13,7 +13,7 @@ const RightPanel = ({data, caption }) => {
             {Object.entries(data).map(([key, value], index) => (
               <tr key={index}>
                 <td className="key">{key}</td>
-                <td className="value">{value}</td>
+                <td className="value">{''+value}</td>
               </tr>
             ))}
           </tbody>
