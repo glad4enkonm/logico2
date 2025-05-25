@@ -31,7 +31,7 @@ public/
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/logico2.git
+   git clone https://github.com/glad4enkonm/logico2.git
    cd logico2
    ```
 
@@ -76,15 +76,6 @@ To format the code:
 yarn format
 ```
 
-## Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```
-REACT_APP_API_BASE_URL=https://api.example.com
-REACT_APP_GRAPH_DEFAULT_NODE_SIZE=100
-REACT_APP_GRAPH_LAYOUT_CENTER=[700,700]
-```
 
 ## Dependencies
 
