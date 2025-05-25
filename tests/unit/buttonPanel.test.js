@@ -13,27 +13,42 @@ describe('ButtonPanel component', () => {
     expect(screen.getByText('Random')).toBeInTheDocument();
   });
 
-  test('calls handleClick with correct button number when clicked', () => {
+  test('dispatches custom event for implemented buttons', () => {
     render(<ButtonPanel />);
 
-    // Mock the console.log to verify the button number
-    const originalLog = console.log;
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const eventSpy = jest.spyOn(window, 'dispatchEvent');
 
     fireEvent.click(screen.getByText('New'));
-    expect(logSpy).toHaveBeenCalledWith('Button new clicked');
+    expect(eventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
+    const event = eventSpy.mock.calls[0][0];
+    expect(event.type).toBe('buttonClick');
+    expect(event.detail).toBe('new');
+
+    eventSpy.mockReset();
 
     fireEvent.click(screen.getByText('Open'));
-    expect(logSpy).toHaveBeenCalledWith('Button 1 clicked');
+    expect(eventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
+    const event2 = eventSpy.mock.calls[0][0];
+    expect(event2.type).toBe('buttonClick');
+    expect(event2.detail).toBe(1);
+
+    eventSpy.mockReset();
 
     fireEvent.click(screen.getByText('Save as'));
-    expect(logSpy).toHaveBeenCalledWith('Button 2 clicked');
+    expect(eventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
+    const event3 = eventSpy.mock.calls[0][0];
+    expect(event3.type).toBe('buttonClick');
+    expect(event3.detail).toBe('saveAs');
+
+    eventSpy.mockReset();
 
     fireEvent.click(screen.getByText('Random'));
-    expect(logSpy).toHaveBeenCalledWith('Button random clicked');
+    expect(eventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
+    const event4 = eventSpy.mock.calls[0][0];
+    expect(event4.type).toBe('buttonClick');
+    expect(event4.detail).toBe('random');
 
-    // Restore original console.log
-    logSpy.mockRestore();
+    eventSpy.mockRestore();
   });
 
   test('dispatches custom event for Random button', () => {

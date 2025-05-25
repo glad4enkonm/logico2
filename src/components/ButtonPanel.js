@@ -11,7 +11,7 @@ const ButtonPanel = () => {
     console.log(`Button ${buttonNumber} clicked`);
 
     // Dispatch a custom event for the button click
-    if (buttonNumber === 'random' || buttonNumber === 'new') {
+    if (buttonNumber === 1 || buttonNumber === 2) {
       const event = new CustomEvent('buttonClick', { detail: buttonNumber });
       window.dispatchEvent(event);
     }
@@ -21,7 +21,10 @@ const ButtonPanel = () => {
     <div className="button-panel">
       <div className="button-group">
         <Button
-          onClick={() => handleClick('new')}
+          onClick={() => {
+            const event = new CustomEvent('buttonClick', { detail: 'new' });
+            window.dispatchEvent(event);
+          }}
           text="New"
           enabled={true}
         />
@@ -31,12 +34,18 @@ const ButtonPanel = () => {
           enabled={true}
         />
         <Button
-          onClick={() => handleClick(2)}
+          onClick={() => {
+            const event = new CustomEvent('buttonClick', { detail: 'saveAs' });
+            window.dispatchEvent(event);
+          }}
           text="Save as"
-          enabled={true} // Disabled button
+          enabled={true} // Enabled button
         />
         <Button
-          onClick={() => handleClick('random')}
+          onClick={() => {
+            const event = new CustomEvent('buttonClick', { detail: 'random' });
+            window.dispatchEvent(event);
+          }}
           text="Random"
           enabled={true}
         />

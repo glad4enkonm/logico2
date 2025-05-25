@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import RightPanel from './components/rightPanel';
 import ButtonPanel from './components/ButtonPanel';
 import G6 from '@antv/g6';
-import { handleRandomEffect, handleNewEffect } from './effects';
+import { handleRandomEffect, handleNewEffect, handleSaveAsEffect } from './effects';
 
 // Define the highlight styles for the edge and nodes
 const highlightStyle = {
@@ -168,12 +168,15 @@ export function App() {
   useEffect(() => {
     const handleRandomClick = handleRandomEffect(graph, graphData, allValues);
     const handleNewClick = handleNewEffect(graph, graphData, allValues);
+    const handleSaveAsClick = handleSaveAsEffect(graph, graphData);
 
     const handleButtonClick = (evt) => {
       if (evt.detail === 'random') {
         handleRandomClick(evt);
       } else if (evt.detail === 'new') {
         handleNewClick(evt);
+      } else if (evt.detail === 'saveAs') {
+        handleSaveAsClick(evt);
       }
     };
 
