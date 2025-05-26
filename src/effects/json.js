@@ -27,7 +27,7 @@ export function handleJsonDiffEffect(graph, graphDataRef, allValuesRef, highlite
         toDelete
       };
 
-      const newGraphData = applyGraphChanges(graphDataRef.current, changes);
+      const newGraphData = applyGraphChanges(graphDataRef.current, allValuesRef.current, changes);
       graphDataRef.current.nodes = newGraphData.nodes;
       graphDataRef.current.edges = newGraphData.edges;
       allValuesRef.current = newGraphData.allValues;

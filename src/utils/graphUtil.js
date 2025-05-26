@@ -133,7 +133,8 @@ export function generateRandomGraph(nodeCount = GRAPH_GENERATION_DEFAULTS.DEFAUL
 /**
  * Applies changes to the graph data based on a change object.
  *
- * @param {Object} currentGraphData - The current graph data {nodes, edges, allValues}.
+ * @param {Object} currentGraphData - The current graph data {nodes, edges}.
+ * @param {Object} currentAllValues - The current allValues object.
  * @param {Object} changes - The changes to apply.
  * @param {Array<Object>} [changes.nodes] - Nodes to add or update.
  * @param {Array<Object>} [changes.edges] - Edges to add or update.
@@ -144,11 +145,11 @@ export function generateRandomGraph(nodeCount = GRAPH_GENERATION_DEFAULTS.DEFAUL
  * @param {Object} [changes.toDelete.allValues] - Object mapping entity IDs to arrays of keys to delete from their allValues.
  * @returns {Object} The new graph data after applying changes.
  */
-export function applyGraphChanges(currentGraphData, changes) {
+export function applyGraphChanges(currentGraphData, currentAllValues, changes) {
   let newNodes = JSON.parse(JSON.stringify(currentGraphData.nodes || []));
   let newEdges = JSON.parse(JSON.stringify(currentGraphData.edges.map(edge => (
     { source: edge.source, target: edge.target, label: edge.label, id: edge.id })) || []));
-  let newAllValues = JSON.parse(JSON.stringify(currentGraphData.allValues || {}));
+  let newAllValues = JSON.parse(JSON.stringify(currentAllValues || {}));
 
   // 1. Handle Deletions
   if (changes.toDelete) {

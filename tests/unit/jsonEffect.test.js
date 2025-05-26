@@ -3,13 +3,13 @@ import { initializeGraph } from '../../src/utils/graphUtil';
 
 jest.mock('../../src/utils/graphUtil', () => ({
   initializeGraph: jest.fn(),
-  applyGraphChanges: jest.fn((currentData, changes) => {
+  applyGraphChanges: jest.fn((currentData, allValues, changes) => {
     // Return a structure that mimics the output of applyGraphChanges
     // based on the input changes for testing purposes.
     return {
       nodes: changes.nodes || (currentData ? currentData.nodes : []),
       edges: changes.edges || (currentData ? currentData.edges : []),
-      allValues: changes.allValues || (currentData ? currentData.allValues : {}),
+      allValues: changes.allValues || (allValues ? allValues : {}),
     };
   }),
 }));

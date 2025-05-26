@@ -76,19 +76,19 @@ describe('graphUtil', () => {
       ],
       edges: [
         { id: 'edge1', source: 'node1', target: 'node2', label: 'Edge 1' }
-      ],
-      allValues: {
-        node1: { key1: 'value1' },
-        node2: { key2: 'value2' },
-        edge1: { key3: 'value3' }
-      }
+      ]
+    };
+    const baseAllValues = {
+      node1: { key1: 'value1' },
+      node2: { key2: 'value2' },
+      edge1: { key3: 'value3' }
     };
 
     test('should add new nodes', () => {
       const changes = {
         nodes: [{ id: 'node3', label: 'Node 3' }]
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.nodes).toHaveLength(3);
       expect(result.nodes.find(n => n.id === 'node3')).toBeDefined();
       expect(result.allValues.node3).toEqual({});
@@ -98,7 +98,7 @@ describe('graphUtil', () => {
       const changes = {
         nodes: [{ id: 'node1', label: 'Updated Node 1' }]
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.nodes.find(n => n.id === 'node1').label).toBe('Updated Node 1');
     });
 
@@ -106,7 +106,7 @@ describe('graphUtil', () => {
       const changes = {
         edges: [{ id: 'edge2', source: 'node1', target: 'node2', label: 'Edge 2' }]
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.edges).toHaveLength(2);
       expect(result.edges.find(e => e.id === 'edge2')).toBeDefined();
       expect(result.allValues.edge2).toEqual({});
@@ -116,7 +116,7 @@ describe('graphUtil', () => {
       const changes = {
         edges: [{ id: 'edge1', label: 'Updated Edge 1' }]
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.edges.find(e => e.id === 'edge1').label).toBe('Updated Edge 1');
     });
 
@@ -127,7 +127,7 @@ describe('graphUtil', () => {
           node3: { key1: 'value1' }
         }
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.allValues.node1.key2).toBe('newValue');
       expect(result.allValues.node3).toBeUndefined(); // node3 does not exist, so its allValues should not be set.
 
@@ -143,7 +143,7 @@ describe('graphUtil', () => {
           nodes: ['node1']
         }
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.nodes).toHaveLength(1);
       expect(result.nodes.find(n => n.id === 'node1')).toBeUndefined();
       expect(result.allValues.node1).toBeUndefined();
@@ -156,7 +156,7 @@ describe('graphUtil', () => {
           edges: ['edge1']
         }
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.edges).toHaveLength(0);
       expect(result.allValues.edge1).toBeUndefined();
     });
@@ -170,7 +170,7 @@ describe('graphUtil', () => {
           }
         }
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.allValues.node1).toEqual({});
       expect(result.allValues.node2).toEqual({});
     });
@@ -191,7 +191,7 @@ describe('graphUtil', () => {
           }
         }
       };
-      const result = applyGraphChanges(baseGraphData, changes);
+      const result = applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(result.nodes).toHaveLength(2); // Original + new node
       expect(result.edges).toHaveLength(0); // edge1 is deleted. edge2 (n1->n2) cannot be added as n2 is deleted.
       expect(result.allValues.node1).toEqual({ key2: 'newValue' });
@@ -205,7 +205,7 @@ describe('graphUtil', () => {
       const changes = {
         edges: [{ id: 'edge2', source: 'node1', target: 'node99', label: 'Edge 2' }]
       };
-      applyGraphChanges(baseGraphData, changes);
+      applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(console.warn).toHaveBeenCalledWith(
         "Skipping edge \"edge2\" because its source node ('node1') or target node ('node99') does not exist in the current node set."
       );
@@ -218,7 +218,7 @@ describe('graphUtil', () => {
           node99: { key1: 'value1' }
         }
       };
-      applyGraphChanges(baseGraphData, changes);
+      applyGraphChanges(baseGraphData, baseAllValues, changes);
       expect(console.warn).toHaveBeenCalledWith(
         'Skipping allValues for non-existent entity ID: node99'
       );
