@@ -49,11 +49,22 @@ describe('ClipboardPanel', () => {
 
     render(<ClipboardPanel />);
 
+    // Set input text and template
+    fireEvent.change(screen.getByPlaceholderText('Enter text here'), {
+      target: { value: 'Test input text' }
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox'), {
+        target: { value: 'template1' }
+      });
+    });
+
     // Test copy functionality
     await act(async () => {
       fireEvent.click(screen.getByText('Copy to Clipboard'));
     });
-    expect(copyToClipboard).toHaveBeenCalledWith('');
+    expect(copyToClipboard).toHaveBeenCalledWith('template1', 'Test input text');
   });
 
   it('applies templates correctly', async () => {
@@ -71,20 +82,15 @@ describe('ClipboardPanel', () => {
       });
     });
 
-    // Wait for template application
-    await waitFor(() => {
-      expect(applyTemplate).toHaveBeenCalledWith('template1', 'Test input text');
-    });
+    // Wait for template application and check output
+    const outputTextarea = await screen.findByDisplayValue('Explain this in simple terms: Test input text');
+    expect(outputTextarea).toBeInTheDocument();
 
     // Check template application
     expect(applyTemplate).toHaveBeenCalledWith(
       'template1',
       'Test input text'
     );
-
-    // Check formatted output
-    const outputTextarea = await screen.findByDisplayValue('Explain this in simple terms: Test input text');
-    expect(outputTextarea).toBeInTheDocument();
   });
 
   // Removed clipboard read error test as paste functionality was removed
