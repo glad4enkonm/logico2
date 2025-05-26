@@ -56,7 +56,7 @@ describe('jsonEffect', () => {
     expect(initializeGraph).toHaveBeenCalledWith(
       mockGraph,
       mockGraphDataRef.current,
-      true
+      false
     );
   });
 

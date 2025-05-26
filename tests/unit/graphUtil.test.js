@@ -130,6 +130,11 @@ describe('graphUtil', () => {
       const result = applyGraphChanges(baseGraphData, changes);
       expect(result.allValues.node1.key2).toBe('newValue');
       expect(result.allValues.node3).toBeUndefined(); // node3 does not exist, so its allValues should not be set.
+
+      // Check that original allValues are still present
+      expect(result.allValues.node1.key1).toBe('value1'); // Original value for node1
+      expect(result.allValues.node2.key2).toBe('value2'); // Original value for node2
+      expect(result.allValues.edge1.key3).toBe('value3'); // Original value for edge1
     });
 
     test('should delete nodes', () => {

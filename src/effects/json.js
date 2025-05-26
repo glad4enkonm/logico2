@@ -33,7 +33,7 @@ export function handleJsonDiffEffect(graph, graphDataRef, allValuesRef, highlite
       allValuesRef.current = newGraphData.allValues;
 
       if (graph) {
-        initializeGraph(graph, graphDataRef.current, true);
+        initializeGraph(graph, graphDataRef.current, false);
 
         if (highlitedRef && highlitedRef.current) {
           highlitedRef.current.nodes = [];
