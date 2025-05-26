@@ -19,6 +19,11 @@ export const GRAPH_LAYOUT_OPTIONS = {
   workerEnabled: true,
 };
 
+export const GRAPH_LAYOUT_OPTIONS_NO_GFORCE = {
+  type: '',
+  center: [700, 700],
+};
+
 export const GRAPH_MODES = {
   default: ['drag-canvas', 'drag-node', 'zoom-canvas'],
 };
@@ -67,6 +72,6 @@ export const BUTTON_EVENTS = {
  * @property {number} DEFAULT_EDGE_COUNT - Default number of edges
  */
 export const GRAPH_GENERATION_DEFAULTS = {
-  DEFAULT_NODE_COUNT: 5,
-  DEFAULT_EDGE_COUNT: 3,
+  DEFAULT_NODE_COUNT: 30,
+  DEFAULT_EDGE_COUNT: 60,
 };

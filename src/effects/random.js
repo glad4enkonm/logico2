@@ -30,8 +30,9 @@ export function handleRandomEffect(graph, graphDataRef, allValuesRef, highlitedR
       allValuesRef.current = newAllValuesData; // If allValuesRef.current should be replaced
 
       if (graph) {
-        initializeGraph(graph, graphDataRef.current, true); // Pass true for doLayout
-        
+        // Use initializeGraph with doLayout = true to apply the GForce layout
+        initializeGraph(graph, graphDataRef.current, true);
+
         // Clear highlights as they are now stale
         if (highlitedRef && highlitedRef.current) {
           highlitedRef.current.nodes = [];

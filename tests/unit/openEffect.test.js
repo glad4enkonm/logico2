@@ -134,10 +134,9 @@ describe('handleOpenEffect', () => {
   test('should handle errors during file reading or parsing', async () => {
     mockFileInput.files = [new Blob()]; // Provide a file to trigger the change
     readFile.mockRejectedValue(new Error('File read error'));
-    
-    // Spy on console.error and window.alert
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+
+    // Spy on console.error (we're now using console.error instead of alert)
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     mockFileInput.addEventListener.mockImplementation((event, cb) => {
       if (event === 'change') mockFileInput.onchangeCallback = cb;
@@ -147,10 +146,9 @@ describe('handleOpenEffect', () => {
     await mockFileInput.onchangeCallback({ target: mockFileInput });
 
     expect(console.error).toHaveBeenCalledWith('Error loading graph data:', expect.any(Error));
-    expect(alertSpy).toHaveBeenCalledWith('Failed to load graph data. Please check the file format.');
+    expect(errorSpy).toHaveBeenCalledWith('Failed to load graph data. Please check the file format.');
     expect(initializeGraph).not.toHaveBeenCalled();
 
-    consoleErrorSpy.mockRestore();
-    alertSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });

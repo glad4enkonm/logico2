@@ -1,5 +1,5 @@
 import G6 from '@antv/g6';
-import { GRAPH_LAYOUT_OPTIONS } from '../constants/appConstants';
+import { GRAPH_LAYOUT_OPTIONS, GRAPH_LAYOUT_OPTIONS_NO_GFORCE } from '../constants/appConstants';
 
 /**
  * Initialize or update a graph with the given data
@@ -12,12 +12,23 @@ export function initializeGraph(graph, graphData, doLayout = true) {
   if (!graph) return;
 
   if (doLayout) {
+    // First set the data
     graph.data(graphData);
-    graph.layout(GRAPH_LAYOUT_OPTIONS);
+
+    // Apply the layout using the GRAPH_LAYOUT_OPTIONS
+    graph.updateLayout(GRAPH_LAYOUT_OPTIONS);
+
+    // Render the graph
     graph.render();
   } else {
+    // Use read instead of data
     graph.read(graphData);
-    graph.render(); // Ensure we render after reading
+
+    // Apply the layout using the GRAPH_LAYOUT_OPTIONS_NO_GFORCE
+    graph.updateLayout(GRAPH_LAYOUT_OPTIONS_NO_GFORCE);
+
+    // Render the graph
+    graph.render();
     return; // Exit after reading
   }
 }

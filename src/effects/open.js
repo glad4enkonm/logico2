@@ -51,7 +51,7 @@ export function handleOpenEffect(graphRef, graphData, allValues) {
           initializeGraph(graph, graphData, false);
         } catch (error) {
           console.error('Error loading graph data:', error);
-          alert('Failed to load graph data. Please check the file format.');
+          console.error('Failed to load graph data. Please check the file format.');
         }
       }
 

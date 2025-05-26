@@ -1,6 +1,6 @@
 import { generateRandomGraph, initializeGraph, applyGraphChanges } from '../../src/utils/graphUtil';
 import G6 from '@antv/g6';
-import { GRAPH_LAYOUT_OPTIONS } from '../../src/constants/appConstants';
+import { GRAPH_LAYOUT_OPTIONS, GRAPH_LAYOUT_OPTIONS_NO_GFORCE } from '../../src/constants/appConstants';
 
 jest.mock('@antv/g6', () => {
   return {
@@ -9,6 +9,7 @@ jest.mock('@antv/g6', () => {
         save: jest.fn(),
         data: jest.fn(),
         layout: jest.fn(),
+        updateLayout: jest.fn(), // Add the updateLayout method
         read: jest.fn(),
         render: jest.fn(),
       };
@@ -45,7 +46,7 @@ describe('graphUtil', () => {
     test('should apply layout when doLayout is true', () => {
       initializeGraph(mockGraph, graphData, true);
       expect(mockGraph.data).toHaveBeenCalledWith(graphData);
-      expect(mockGraph.layout).toHaveBeenCalledWith(GRAPH_LAYOUT_OPTIONS);
+      expect(mockGraph.updateLayout).toHaveBeenCalledWith(GRAPH_LAYOUT_OPTIONS);
       expect(mockGraph.render).toHaveBeenCalled();
       expect(mockGraph.read).not.toHaveBeenCalled();
     });
@@ -55,13 +56,13 @@ describe('graphUtil', () => {
       expect(mockGraph.read).toHaveBeenCalledWith(graphData);
       expect(mockGraph.render).toHaveBeenCalled();
       expect(mockGraph.data).not.toHaveBeenCalled();
-      expect(mockGraph.layout).not.toHaveBeenCalled();
+      expect(mockGraph.updateLayout).toHaveBeenCalledWith(GRAPH_LAYOUT_OPTIONS_NO_GFORCE);
     });
 
     test('should default to doLayout = true if not specified', () => {
       initializeGraph(mockGraph, graphData); // doLayout is omitted
       expect(mockGraph.data).toHaveBeenCalledWith(graphData);
-      expect(mockGraph.layout).toHaveBeenCalledWith(GRAPH_LAYOUT_OPTIONS);
+      expect(mockGraph.updateLayout).toHaveBeenCalledWith(GRAPH_LAYOUT_OPTIONS);
       expect(mockGraph.render).toHaveBeenCalled();
       expect(mockGraph.read).not.toHaveBeenCalled();
     });
