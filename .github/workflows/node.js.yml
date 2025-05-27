@@ -16,17 +16,17 @@ jobs:
       - name: Run install
         uses: borales/actions-yarn@v4
         with:
-          cmd: install # will run `yarn install` command
-        working-directory: ./front
+          cmd: install
+        working-directory: ./front  # Moved to top-level
 
       - name: Build production bundle
         uses: borales/actions-yarn@v4
         with:
-          cmd: build # will run `yarn build` command
-        working-directory: ./front
+          cmd: build
+        working-directory: ./front  # Moved to top-level
 
       - name: Test the app
         uses: borales/actions-yarn@v4
         with:
-          cmd: test # will run `yarn test` command
-        working-directory: ./front
+          cmd: test
+        working-directory: ./front  # Moved to top-level
