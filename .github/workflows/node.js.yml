@@ -4,7 +4,7 @@ on: [push]
 jobs:
   build:
     name: Test
-    runs-on: ubuntu-latest    
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -16,14 +16,17 @@ jobs:
       - name: Run install
         uses: borales/actions-yarn@v4
         with:
-          cmd: cd front && install
+          cmd: install # will run `yarn install` command
+          dir: './front'
 
       - name: Build production bundle
         uses: borales/actions-yarn@v4
         with:
-          cmd: cd front && build
+          cmd: build # will run `yarn build` command
+          dir: './front'
 
       - name: Test the app
         uses: borales/actions-yarn@v4
         with:
-          cmd: cd front && test
+          cmd: test # will run `yarn test` command
+          dir: './front'
