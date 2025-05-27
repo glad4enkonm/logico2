@@ -1,8 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import RightPanel from '@/components/RightPanel';
 import G6 from '@antv/g6';
-import { handleRandomEffect, handleNewEffect, handleSaveAsEffect, handleOpenEffect, handleJsonDiffEffect } from '@/effects';
-import { initializeGraph } from '@/utils/graphUtil';
+import {
+  handleRandomEffect,
+  handleNewEffect,
+  handleSaveAsEffect,
+  handleOpenEffect,
+  handleJsonDiffEffect
+} from '@/effects';
+import findByEmbeddingEffect from '@/effects/findByEmbedding';
+import { initializeGraph, highlightGraphElements, clearPreviousHighlights } from '@/utils/graphUtil';
 import {
   HIGHLIGHT_STYLE,
   DEFAULT_EDGE,
@@ -49,11 +56,8 @@ export function App() {
         setSelectedElementValues(allValuesRef.current[e.item._cfg.id] || {});
         setSelectedElementLabel(e.item._cfg.model.label || "Edge");
 
-        // Clear previous highlights before applying new ones for simplicity
-        highlitedRef.current.edges.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_EDGE.style }));
-        highlitedRef.current.nodes.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_NODE.style }));
-        highlitedRef.current.edges = [];
-        highlitedRef.current.nodes = [];
+        // Clear previous highlights
+        clearPreviousHighlights(currentGraph, highlitedRef.current);
 
         highlitedRef.current.edges.push(e.item);
         highlitedRef.current.nodes.push(e.item.getSource(), e.item.getTarget());
@@ -69,10 +73,7 @@ export function App() {
         setSelectedElementLabel(e.item._cfg.model.label || "Node");
 
         // Clear previous highlights
-        highlitedRef.current.edges.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_EDGE.style }));
-        highlitedRef.current.nodes.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_NODE.style }));
-        highlitedRef.current.edges = [];
-        highlitedRef.current.nodes = [];
+        clearPreviousHighlights(currentGraph, highlitedRef.current);
 
         highlitedRef.current.nodes.push(node);
 
@@ -96,10 +97,7 @@ export function App() {
       const canvasClickHandler = () => {
         setSelectedElementValues({});
         setSelectedElementLabel("Select element");
-        highlitedRef.current.edges.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_EDGE.style }));
-        highlitedRef.current.nodes.forEach(el => currentGraph.updateItem(el, { style: DEFAULT_NODE.style }));
-        highlitedRef.current.edges = [];
-        highlitedRef.current.nodes = [];
+        clearPreviousHighlights(currentGraph, highlitedRef.current);
         currentGraph.paint();
       };
 
@@ -137,7 +135,7 @@ export function App() {
     const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be mutated inside
     const jsonHandler = handleJsonDiffEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
 
-    const handleButtonClick = (evt) => {
+    const handleButtonClick = async (evt) => {
       const eventType = evt.detail && evt.detail.type ? evt.detail.type : evt.detail; // Handle both old and new event detail formats
       switch (eventType) {
         case BUTTON_EVENTS.RANDOM:
@@ -163,6 +161,38 @@ export function App() {
             return; // Early exit to prevent further processing with missing data
           }
           jsonHandler(jsonData);
+          break;
+        // Handle effect call events
+        case 'EFFECT_CALL_FINDBYEMBEDDING':
+          const { inputText: embeddingInput } = evt.detail || {};
+          if (!embeddingInput) {
+            console.warn('findByEmbedding called without inputText');
+            return;
+          }
+          try {
+            const result = await findByEmbeddingEffect(embeddingInput, {
+              nodes: graphDataRef.current.nodes,
+              edges: graphDataRef.current.edges,
+              allValues: allValuesRef.current
+            });
+
+            // Highlight the random nodes and edges
+            const currentGraph = graphRef.current;
+            if (currentGraph) {
+              highlightGraphElements(currentGraph, result.nodes, result.edges, highlitedRef.current);
+            }
+
+            // Dispatch a new event with the result
+            const doneEvent = new CustomEvent('buttonClick', {
+              detail: {
+                type: 'EFFECT_DONE_FINDBYEMBEDDING',
+                result
+              }
+            });
+            window.dispatchEvent(doneEvent);
+          } catch (error) {
+            console.error('Error in findByEmbeddingEffect:', error);
+          }
           break;
         default:
           break;

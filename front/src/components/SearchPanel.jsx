@@ -1,56 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './clipboardPanel.css';
 import Button from '@/components/Button';
-import {
-  getSearchEffects,
-  applySearchEffect
-} from '@/effects/search';
 
 const SearchPanel = () => {
   const [inputText, setInputText] = useState('');
-  const [outputText, setOutputText] = useState('');
-  const [selectedEffect, setSelectedEffect] = useState('');
   const [effectError, setEffectError] = useState('');
-  const effects = getSearchEffects();
 
-  useEffect(() => {
-    if (selectedEffect && inputText) {
-      const result = applySearchEffect(selectedEffect)(inputText);
-      if (result === null) {
-        setEffectError('Invalid effect selected');
-        setOutputText(inputText);
-      } else {
-        setEffectError('');
-        setOutputText(result);
-      }
-    } else {
-      setEffectError('');
-      setOutputText(inputText);
+  const handleDone = async () => {
+    if (!inputText) {
+      setEffectError('Please enter input text');
+      return;
     }
-  }, [selectedEffect, inputText]);
 
-  const handleEffectChange = (e) => {
-    const effect = e.target.value;
-    setSelectedEffect(effect);
-  };
-
-  const handleDone = () => {
-    // Implement done functionality if needed
-    console.log('Done button clicked');
+    // Dispatch event for findByEmbedding
+    const event = new CustomEvent('buttonClick', {
+      detail: {
+        type: 'EFFECT_CALL_FINDBYEMBEDDING',
+        inputText
+      }
+    });
+    window.dispatchEvent(event);
   };
 
   return (
     <div className="clipboard-panel">
-      <div>
-        <select value={selectedEffect} onChange={handleEffectChange}>
-          <option value="">Select effect</option>
-          {Object.keys(effects).map((key) => (
-            <option key={key} value={key}>
-              {key.replace('effect', 'Effect ')}
-            </option>
-          ))}
-        </select>
-      </div>
       <div>
         <textarea
           value={inputText}
@@ -60,17 +33,8 @@ const SearchPanel = () => {
           cols="50"
         />
       </div>
-      <div>
-        <textarea
-          value={outputText}
-          readOnly
-          placeholder="Output will appear here"
-          rows="4"
-          cols="50"
-        />
-      </div>
       <div className="button-group">
-        <Button onClick={handleDone} text="Done" enabled={true} />
+        <Button onClick={handleDone} text="Find by Embedding" enabled={true} />
       </div>
       {effectError && <div className="error-message" data-testid="effect-error">{effectError}</div>}
     </div>
