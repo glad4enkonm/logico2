@@ -3,11 +3,13 @@ import './buttonPanel.css';
 import Button from '@/components/Button';
 import ClipboardPanel from '@/components/ClipboardPanel';
 import JsonDiffPanel from '@/components/JsonDiffPanel';
+import SearchPanel from '@/components/SearchPanel';
 import { BUTTON_EVENTS } from '@/constants/appConstants';
 
 const ButtonPanel = () => {
   const [showClipboard, setShowClipboard] = useState(false);
   const [showJsonDiff, setShowJsonDiff] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   return (
     <div className="button-panel">
@@ -54,6 +56,11 @@ const ButtonPanel = () => {
           text="JSON Diff"
           enabled={true}
         />
+        <Button
+          onClick={() => setShowSearch(!showSearch)}
+          text="Search"
+          enabled={true}
+        />
       </div>
       {showClipboard && (
         <div className="clipboard-panel-container">
@@ -71,6 +78,11 @@ const ButtonPanel = () => {
               }}
             />
           </div>
+        </div>
+      )}
+      {showSearch && (
+        <div className="search-panel-container">
+          <SearchPanel />
         </div>
       )}
     </div>

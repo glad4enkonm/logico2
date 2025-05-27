@@ -30,14 +30,9 @@
   background: #BB86FC;
 }
 
-.clipboard-panel-container {
-  margin-top: 20px;
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-  padding-top: 20px;
-}
-
-.json-panel-container {
+.clipboard-panel-container,
+.json-panel-container,
+.search-panel-container {
   margin-top: 20px;
   border-top: 1px solid #ccc;
   border-bottom: 1px solid #ccc;
