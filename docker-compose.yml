@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  front:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./front:/app
+    command: sh -c "yarn install && yarn start"
+    ports:
+      - "1234:1234"
+    environment:
+      - NODE_ENV=development
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+    environment:
+      - MODEL_NAME=nomic-embed-text
+
+  back:
+    build:
+      context: ./back
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./back:/app
+    environment:
+      - MODEL_NAME=nomic-embed-text

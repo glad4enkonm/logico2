@@ -1,0 +1,10 @@
+curl http://localhost:11434/api/tags # check the ollama reply
+curl http://localhost:11434/api/pull -d '{ "name": "nomic-embed-text" }' # pull the model
+
+curl http://localhost:11434/api/embeddings \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "nomic-embed-text",
+    "prompt": "Here is an article about the Transformers library"
+  }'
