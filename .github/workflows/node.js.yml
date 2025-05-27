@@ -13,18 +13,18 @@ jobs:
         with:
           node-version: 22.x
 
-       - name: Run install
-         uses: borales/actions-yarn@v4
-         with:
-           cmd: install # will run `yarn install` command
-         working-directory: ./front
-       - name: Build production bundle
-         uses: borales/actions-yarn@v4
-         with:
-           cmd: build # will run `yarn build` command
-         working-directory: ./front
-       - name: Test the app
-         uses: borales/actions-yarn@v4
-         with:
-           cmd: test # will run `yarn test` command
-         working-directory: ./front
+     - name: Run install
+       uses: borales/actions-yarn@v4
+       with:
+         cmd: install # will run `yarn install` command
+       working-directory: ./front
+     - name: Build production bundle
+       uses: borales/actions-yarn@v4
+       with:
+         cmd: build # will run `yarn build` command
+       working-directory: ./front
+     - name: Test the app
+       uses: borales/actions-yarn@v4
+       with:
+         cmd: test # will run `yarn test` command
+       working-directory: ./front
