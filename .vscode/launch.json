@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Debug FastAPI Backend",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn", // Launch uvicorn as a module
+            "args": [
+                "main:app", // Your FastAPI app (filename:instance)
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000"
+                // Add "--reload" here if you need Uvicorn's auto-reload
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true, // Set to false if you need to debug into uvicorn/fastapi internals
+            "stopOnEntry": false, // Usually false when launching a server
+            "jinja": true,
+            "cwd": "${workspaceFolder}/back"
+        }
+    ]
+}

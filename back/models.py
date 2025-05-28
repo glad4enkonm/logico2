@@ -15,3 +15,7 @@ class GraphData(BaseModel):
     nodes: List[Node]
     edges: List[Edge]
     allValues: Dict[str, Any]
+
+class SearchRequest(BaseModel):
+    graph_data: GraphData
+    query: str = None

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../constants/appConstants';
 
 /**
- * Find random nodes and edges in the graph and highlight them
+ * Search for nodes and edges in the graph based on the query content
  * @param {string} content - The content to search for (could be a query or embedding)
  * @param {Object} graphData - The graph data to filter and send to the backend
  * @param {Array} graphData.nodes - Array of nodes
@@ -27,21 +27,34 @@ const findByEmbeddingEffect = async (content, graphData) => {
       id: edge.id, // Include id as required by the backend model
     }));
 
-    // Send the data to the backend
-    await axios.post(`${API_BASE_URL}/load-graph`, {
-      nodes: filteredNodes,
-      edges: filteredEdges,
-      allValues: allValues || {} // Include allValues if available
+    // Send the data to the backend with the query
+    const response = await axios.post(`${API_BASE_URL}/search`, {
+      graph_data: {
+        nodes: filteredNodes,
+        edges: filteredEdges,
+        allValues: allValues || {}, // Include allValues if available
+      },
+      query: content // Include query in the request body
     });
 
-    // Get random nodes and edges
-    const randomNodes = getRandomElements(nodes, 3); // Get 3 random nodes
-    const randomEdges = getRandomElements(edges, 3); // Get 3 random edges
+    // Get the most relevant node ID from the response
+    const { most_relevant_id, score } = response.data;
+    console.log(most_relevant_id, score)
+
+    // Find the relevant node and its connected edges
+    const relevantNodes = most_relevant_id
+      ? nodes.filter(node => node.id === most_relevant_id)
+      : [];
+
+    // Find edges connected to the relevant node
+    const relevantEdges = most_relevant_id
+      ? edges.filter(edge => edge.id === most_relevant_id)
+      : [];
 
     // Return the filtered data
     return {
-      nodes: randomNodes,
-      edges: randomEdges
+      nodes: relevantNodes,
+      edges: relevantEdges
     };
   } catch (error) {
     console.error('Error fetching or loading graph data:', error);
