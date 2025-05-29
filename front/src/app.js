@@ -9,6 +9,7 @@ import {
   handleJsonDiffEffect
 } from '@/effects';
 import findByEmbeddingEffect from '@/effects/findByEmbedding';
+import findAllEffect from '@/effects/findAll';
 import { initializeGraph, highlightGraphElements, clearPreviousHighlights } from '@/utils/graphUtil';
 import {
   HIGHLIGHT_STYLE,
@@ -192,6 +193,37 @@ export function App() {
             window.dispatchEvent(doneEvent);
           } catch (error) {
             console.error('Error in findByEmbeddingEffect:', error);
+          }
+          break;
+        case 'EFFECT_CALL_FINDALL':
+          const { inputText: findAllInput } = evt.detail || {};
+          if (!findAllInput) {
+            console.warn('findAllEffect called without inputText');
+            return;
+          }
+          try {
+            const result = await findAllEffect(findAllInput, {
+              nodes: graphDataRef.current.nodes,
+              edges: graphDataRef.current.edges,
+              allValues: allValuesRef.current
+            });
+
+            // Highlight the found nodes and edges
+            const currentGraph = graphRef.current;
+            if (currentGraph) {
+              highlightGraphElements(currentGraph, result.nodes, result.edges, highlitedRef.current);
+            }
+
+            // Dispatch a new event with the result
+            const doneEvent = new CustomEvent('buttonClick', {
+              detail: {
+                type: 'EFFECT_DONE_FINDALL',
+                result
+              }
+            });
+            window.dispatchEvent(doneEvent);
+          } catch (error) {
+            console.error('Error in findAllEffect:', error);
           }
           break;
         default:

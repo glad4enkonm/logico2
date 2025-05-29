@@ -22,6 +22,22 @@ const SearchPanel = () => {
     window.dispatchEvent(event);
   };
 
+  const handleFindAll = async () => {
+    if (!inputText) {
+      setEffectError('Please enter input text');
+      return;
+    }
+
+    // Dispatch event for findAll
+    const event = new CustomEvent('buttonClick', {
+      detail: {
+        type: 'EFFECT_CALL_FINDALL',
+        inputText
+      }
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="clipboard-panel">
       <div>
@@ -35,10 +51,11 @@ const SearchPanel = () => {
       </div>
       <div className="button-group">
         <Button onClick={handleDone} text="Find by Embedding" enabled={true} />
+        <Button onClick={handleFindAll} text="Find all" enabled={true} />
       </div>
       {effectError && <div className="error-message" data-testid="effect-error">{effectError}</div>}
     </div>
   );
-};
 
+};
 export default SearchPanel;

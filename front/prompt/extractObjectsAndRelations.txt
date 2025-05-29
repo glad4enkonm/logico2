@@ -1,0 +1,117 @@
+Final Prompt for LLM (Object-Relation Extraction with Context Tracking):
+Extraction Schema
+json
+
+{  
+  "objects": [  
+    {  
+      "name": "snake_case_identifier",  
+      "type": "category",  
+      "attributes": {  
+        "property": "descriptive value",  
+        "reference": "linked_object_name"  
+      },  
+      "definition": "Intrinsic traits only",  
+      "context": "Exact introduction phrase"  
+    }  
+  ],  
+  "relations": [  
+    {  
+      "type": "snake_case_action",  
+      "source": "object_name",  
+      "target": "object_name",  
+      "definition": "Interaction purpose",  
+      "context": "Exact action phrase"  
+    }  
+  ]  
+}  
+
+Validation Example
+
+Text:
+*"Engineer Clara installed the thermal sensor onto the RX-9000 robot. The device began monitoring temperature immediately."*
+
+Extracted Output:
+json
+
+{  
+  "objects": [  
+    {  
+      "name": "thermal_sensor",  
+      "type": "device",  
+      "attributes": {  
+        "function": "temperature monitoring",  
+        "status": "active",  
+        "mounted_on": "rx_9000"  
+      },  
+      "definition": "Electronic component for heat detection",  
+      "context": "the thermal sensor"  
+    },  
+    {  
+      "name": "rx_9000",  
+      "type": "robot",  
+      "attributes": {  
+        "category": "industrial robot"  
+      },  
+      "definition": "Multi-joint assembly automation system",  
+      "context": "the RX-9000 robot"  
+    }  
+  ],  
+  "relations": [  
+    {  
+      "type": "installing",  
+      "source": "engineer_clara",  
+      "target": "thermal_sensor",  
+      "definition": "Physical integration of monitoring hardware",  
+      "context": "Engineer Clara installed the thermal sensor"  
+    },  
+    {  
+      "type": "mounting",  
+      "source": "thermal_sensor",  
+      "target": "rx_9000",  
+      "definition": "Permanent placement on robot chassis",  
+      "context": "installed the thermal sensor onto the RX-9000 robot"  
+    }  
+  ]  
+}  
+
+Key Features
+
+    Object Context:
+
+        thermal_sensor.context = "the thermal sensor" (direct noun phrase)
+
+        rx_9000.context = "the RX-9000 robot" (full first mention)
+
+    Attribute Handling:
+
+        Descriptive values: "function": "temperature monitoring" (normal text)
+
+        Object references: "mounted_on": "rx_9000" (raw snake_case)
+
+    Relation Precision:
+
+        installing context: Full action clause with subject/object
+
+        mounting context: Specific prepositional phrase ("onto...")
+
+    Definition Purity:
+
+        ❌ No relational terms: "sensor *on RX-9000*"
+
+        ✅ Intrinsic only: "Electronic component for heat detection"
+
+Rules Recap
+
+    Snake_case names: thermal_sensor (not thermal-sensor or thermalSensor)
+
+    Context faithfulness: Copy text verbatim (preserve capitalization/plurality)
+
+    No ID prefixes: Direct name references in attributes ("mounted_on": "rx_9000")
+
+**Input Text:**
+"""
+[content]
+"""
+
+**Important:** Your response should be a plain JSON text without any comments or formatting (no ```json ```). Only include the changes object structure as described above as plain text.

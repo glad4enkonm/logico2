@@ -3,7 +3,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
 
-from models import GraphData, SearchRequest
+from models import GraphData, SearchRequest, SearchAllRequest
+from graph_matching import search_all
 
 app = FastAPI()
 
@@ -113,3 +114,13 @@ def load_graph(graph: GraphData):
 def get_graph():
     global graph_data
     return graph_data
+
+@app.post("/searchAll")
+def search_all_endpoint(search_all_request: SearchAllRequest) -> Dict[str, Any]:
+    """Search the graph for all relevant nodes and edges based on the query objects and relations."""
+    graph_data = search_all_request.graph_data
+    query_objects = search_all_request.query.get("objects", [])
+    query_relations = search_all_request.query.get("relations", [])
+
+    # Call the search_all function from the graph_matching module
+    return search_all(graph_data, query_objects, query_relations)

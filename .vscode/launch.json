@@ -19,6 +19,23 @@
             "stopOnEntry": false, // Usually false when launching a server
             "jinja": true,
             "cwd": "${workspaceFolder}/back"
+        },
+        {
+            "name": "Debug test_search_all_with_relations",
+            "type": "debugpy", 
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "back/tests/test_graph_matching.py::test_search_all_with_relations",
+                "-s",
+                "-v"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/back"
+            },            
         }
     ]
 }
