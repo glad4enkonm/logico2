@@ -5,12 +5,13 @@ Logico2 is a React-based application for creating and visualizing formal graphs 
 ## Features
 
 - Visualize formal graphs with interactive graph components
-- Save and load graph configurations
+- Save and load graph configurations, including all detailed node and edge properties.
 - Generate random graphs for testing
 - Responsive design for desktop and mobile
 - Text processing capabilities for creating graphs from LLM outputs
+- Semantic search capabilities powered by a Python backend using ChromaDB for custom embeddings.
 
-![Example Image](front/ya.png)
+![Logico2 graph visualization example](front/ya.png)
 
 ## Project Structure
 
@@ -77,7 +78,7 @@ front/                 # Frontend directory
 │   │   ├── saveRestoreAllValues.test.js
 docker-compose.yml     # Docker Compose configuration
 .gitignore             # Git ignore file
-ollama/                # Ollama configuration and models
+ollama/                # Ollama configuration, local model storage, and access keys
 ├── id_ed25519
 ├── id_ed25519.pub
 ├── models/
@@ -85,18 +86,39 @@ ollama/                # Ollama configuration and models
 │   ├── manifests/
 ```
 
+## Architecture Overview
+
+Logico2 is designed with a decoupled frontend and backend architecture, often orchestrated with Docker Compose for ease of development and deployment.
+
+-   **Frontend (`front/`)**: A React-based single-page application built with Parcel. It provides the user interface for:
+    -   Visualizing and interacting with graphs using AntV G6.
+    -   Creating, modifying, saving, and loading graph data (including detailed node/edge properties).
+    -   Initiating semantic searches.
+    -   Communicates with the backend via HTTP requests (using Axios).
+
+-   **Backend (`back/`)**: A Python service (details in `back/main.py` and `back/requirements.txt`) responsible for:
+    -   Interfacing with Ollama to generate text embeddings using a specified model (e.g., `nomic-embed-text`).
+    -   Storing and retrieving these embeddings along with associated graph data using ChromaDB.
+    -   Providing an API for semantic search over the stored embeddings.
+
+-   **Ollama Service**: Utilizes the official `ollama/ollama` Docker image to serve language models, specifically configured to provide text embedding models like `nomic-embed-text`. The local `./ollama` directory (see Project Structure) is used for model storage, configuration, and access keys.
+
+-   **Docker Orchestration**:
+    -   `docker-compose.yml`: Defines and links the `front`, `back`, and `ollama` services for a complete development environment.
+    -   `docker-compose-ollama.yml`: Provides a way to run the Ollama service independently if needed.
+
 ## Installation
 
 ### Using Docker Compose (Recommended)
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone https://github.com/glad4enkonm/logico2.git
    cd logico2
    ```
 
 2. Start the application using Docker Compose:
-   ```
+   ```bash
    docker-compose up
    ```
 
@@ -105,25 +127,25 @@ ollama/                # Ollama configuration and models
 ### Manual Installation
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone https://github.com/glad4enkonm/logico2.git
    cd logico2
    ```
 
 2. Install backend dependencies:
-   ```
+   ```bash
    cd back
    pip install -r requirements.txt
    ```
 
 3. Install frontend dependencies:
-   ```
+   ```bash
    cd ../front
    yarn install
    ```
 
 4. Start the development servers:
-   ```
+   ```bash
    # In one terminal, start the backend
    cd ../back
    python main.py
@@ -135,37 +157,54 @@ ollama/                # Ollama configuration and models
 
 ## Build
 
-To create a production build:
-
-```
+To create a production build for the frontend:
+```bash
 cd front
 yarn build
 ```
 
 ## Testing
 
-To run tests:
+### Frontend
 
-```
+To run frontend tests:
+```bash
 cd front
 yarn test
 ```
 
-To run tests in watch mode:
-
-```
+To run frontend tests in watch mode:
+```bash
 cd front
 yarn test:watch
 ```
 
+### Backend
 
-## Dependencies
+To run backend unit tests (from the project root):
+```bash
+./run_back_unit_tests.sh
+```
 
+For other backend tests (from the project root):
+```bash
+./test_back.sh
+```
+
+## Key Technologies & Dependencies
+
+**Frontend:**
 - React 18
-- G6 (AntV Graph) for graph visualization
-- Parcel for bundling
-- Babel for transpiling
-- Jest for testing
+- G6 (AntV Graph): For graph visualization
+- Parcel: For bundling
+- Axios: For communication with the backend
+- Jest: For testing
+
+**Backend & Services:**
+- Python
+- ChromaDB: For vector storage and semantic search
+- Ollama: For serving local LLMs (e.g., `nomic-embed-text` for embeddings via Docker)
+- (See `back/requirements.txt` for detailed Python libraries)
 
 ## License
 

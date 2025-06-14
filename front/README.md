@@ -5,12 +5,13 @@ Logico2 is a React-based application for creating and visualizing formal graphs 
 ## Features
 
 - Visualize formal graphs with interactive graph components
-- Save and load graph configurations
+- Save and load graph configurations, including all detailed node and edge properties.
 - Generate random graphs for testing
 - Responsive design for desktop and mobile
 - Text processing capabilities for creating graphs from LLM outputs
+- Semantic search capabilities powered by a Python backend using ChromaDB for custom embeddings.
 
-![Example Image](ya.png)
+![Logico2 graph visualization example](ya.png)
 
 ## Project Structure
 
@@ -18,7 +19,6 @@ Logico2 is a React-based application for creating and visualizing formal graphs 
 src/
 ├── components/       # React components
 ├── constants/        # Shared constants and configuration
-├── config/           # Environment variables and configuration
 ├── effects/          # Event handlers and side effects
 ├── utils/            # Utility functions
 ├── app.js            # Main application file
@@ -26,6 +26,13 @@ src/
 public/
 ├── index.html        # Main HTML file
 ```
+
+## Architecture Overview
+
+Logico2 consists of two main components:
+
+- **Frontend:** A React-based application responsible for graph visualization, user interaction, and data presentation. It allows users to build, modify, save, and load graphs.
+- **Backend (Conceptual):** A Python-based service utilizing ChromaDB. This backend handles tasks like generating and storing custom text embeddings and performing semantic similarity searches based on those embeddings to find relevant graph elements.
 
 ## Installation
 
@@ -62,18 +69,6 @@ yarn test
 To run tests in watch mode:
 ```
 yarn test:watch
-```
-
-## Linting and Formatting
-
-To lint the code:
-```
-yarn lint
-```
-
-To format the code:
-```
-yarn format
 ```
 
 
