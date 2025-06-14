@@ -52,7 +52,7 @@ describe('graphUtil', () => {
     });
 
     test('should not apply layout and use graph.read when doLayout is false', () => {
-      initializeGraph(mockGraph, graphData, false);
+      initializeGraph(mockGraph, graphData, null, false);
       expect(mockGraph.read).toHaveBeenCalledWith(graphData);
       expect(mockGraph.render).toHaveBeenCalled();
       expect(mockGraph.data).not.toHaveBeenCalled();

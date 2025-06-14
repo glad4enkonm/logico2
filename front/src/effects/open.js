@@ -37,18 +37,21 @@ export function handleOpenEffect(graphRef, graphData, allValues) {
           graphData.nodes = data.nodes || [];
           graphData.edges = data.edges || [];
 
-          // Clear any existing values
+          // Clear any existing values from the application's shared allValues state
           Object.keys(allValues).forEach(key => {
             delete allValues[key];
           });
 
-          // Restore the allValues from the file
+          let fileAllValues = null; // This will hold the allValues from the loaded file
+          // Restore the allValues from the file into the application's shared state
+          // and also keep a copy in fileAllValues to pass to initializeGraph
           if (data.allValues) {
             Object.assign(allValues, data.allValues);
+            fileAllValues = data.allValues;
           }
 
-          // Initialize the graph with the new data using the centralized function
-          initializeGraph(graph, graphData, false);
+          // Initialize the graph with the new data, passing the allValues from the file
+          initializeGraph(graph, graphData, fileAllValues, false);
         } catch (error) {
           console.error('Error loading graph data:', error);
           console.error('Failed to load graph data. Please check the file format.');

@@ -58,7 +58,7 @@ export function clearPreviousHighlights(graph, highlitedRef) {
  * @param {boolean} [doLayout=true] - Whether to adjust the layout
  * @returns {void}
  */
-export function initializeGraph(graph, graphData, doLayout = true) {
+export function initializeGraph(graph, graphData, loadedAllValues = null, doLayout = true) {
   if (!graph) return;
 
   if (doLayout) {
@@ -73,6 +73,21 @@ export function initializeGraph(graph, graphData, doLayout = true) {
   } else {
     // Use read instead of data
     graph.read(graphData);
+
+    // If allValues were loaded from the file, apply them to the graph items
+    if (loadedAllValues) {
+      Object.keys(loadedAllValues).forEach(itemId => {
+        const item = graph.findById(itemId); // Find node or edge by ID
+        if (item) {
+          // Create a new object for update to ensure G6 processes it correctly
+          // and to avoid potential side effects if loadedAllValues[itemId] is reused.
+          const propertiesToUpdate = { ...loadedAllValues[itemId] };
+          graph.updateItem(item, propertiesToUpdate);
+        } else {
+          console.warn(`Item with ID ${itemId} from allValues not found in graph after reading data (during open).`);
+        }
+      });
+    }
 
     // Apply the layout using the GRAPH_LAYOUT_OPTIONS_NO_GFORCE
     graph.updateLayout(GRAPH_LAYOUT_OPTIONS_NO_GFORCE);

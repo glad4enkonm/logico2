@@ -25,7 +25,7 @@ describe('Save and Restore allValues functionality', () => {
     };
     document.body.appendChild = jest.fn();
 
-    const saveHandler = handleSaveAsEffect(mockGraph, graphData, allValues);
+    const saveHandler = handleSaveAsEffect(mockGraph, graphData, { current: allValues });
     const event = new Event('buttonClick');
     event.detail = 'saveAs';
 
@@ -41,6 +41,10 @@ describe('Save and Restore allValues functionality', () => {
       // though it primarily delegates to initializeGraph for graph updates.
       read: jest.fn(), // initializeGraph calls graph.read when doLayout is false
       paint: jest.fn(), // initializeGraph calls graph.paint
+      findById: jest.fn(itemId => ({ id: itemId, _cfg: {} })), // Return a mock item
+      updateItem: jest.fn(), // Called by initializeGraph to restore allValues
+      updateLayout: jest.fn(), // Called by initializeGraph
+      render: jest.fn(), // Called by initializeGraph
     };
     const mockGraphRef = { current: mockGraph };
     const graphData = { nodes: [], edges: [] };

@@ -3,6 +3,7 @@ import { handleSaveAsEffect } from '@/effects/saveAs';
 describe('saveAsEffect', () => {
   let graphMock;
   let graphDataMock;
+  let allValuesRefMock;
   let eventMock;
 
   beforeEach(() => {
@@ -16,6 +17,7 @@ describe('saveAsEffect', () => {
 
     // Mock the graph data
     graphDataMock = {};
+    allValuesRefMock = { current: { valKey: 'valValue' } }; // Initialize with some mock data
 
     // Mock the event
     eventMock = new Event('click');
@@ -40,7 +42,7 @@ describe('saveAsEffect', () => {
     const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click');
 
     // Get the handler function
-    const handler = handleSaveAsEffect(graphMock, graphDataMock);
+    const handler = handleSaveAsEffect(graphMock, graphDataMock, allValuesRefMock);
 
     // Call the handler with the mock event
     handler(eventMock);
@@ -62,7 +64,7 @@ describe('saveAsEffect', () => {
     wrongEvent.detail = 'otherAction';
 
     // Get the handler function
-    const handler = handleSaveAsEffect(graphMock, graphDataMock);
+    const handler = handleSaveAsEffect(graphMock, graphDataMock, allValuesRefMock);
 
     // Call the handler with the wrong event
     handler(wrongEvent);
@@ -81,7 +83,7 @@ describe('saveAsEffect', () => {
     const createObjectURLSpy = jest.spyOn(URL, 'createObjectURL');
   
     // Get the handler function
-    const handler = handleSaveAsEffect(graphMock, graphDataMock);
+    const handler = handleSaveAsEffect(graphMock, graphDataMock, allValuesRefMock);
   
     // Call the handler with the mock event
     handler(eventMock);
@@ -92,7 +94,11 @@ describe('saveAsEffect', () => {
   
     // Verify Blob creation with correct data
     expect(mockBlob).toHaveBeenCalledWith(
-      [JSON.stringify(savedData, null, 2)],
+      [JSON.stringify({
+        nodes: savedData.nodes.map(node => ({ id: node.id, label: node.label, x: node.x, y: node.y })),
+        edges: savedData.edges.map(edge => ({ source: edge.source, target: edge.target, label: edge.label, id: edge.id })),
+        allValues: allValuesRefMock.current
+      }, null, 2)],
       { type: 'application/json' }
     );
       

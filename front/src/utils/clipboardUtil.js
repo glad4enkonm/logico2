@@ -1,4 +1,3 @@
-import React from 'react';
 import fs from 'fs';
 import path from 'path';
 
@@ -6,6 +5,7 @@ import path from 'path';
 const promptTemplates = {
   extractAndApplyGraphChanges: fs.readFileSync(path.join(__dirname, '../../prompt/extractAndApplyGraphChanges.txt'), 'utf8'),
   extractObjectsAndRelations: fs.readFileSync(path.join(__dirname, '../../prompt/extractObjectsAndRelations.txt'), 'utf8'),
+  initObjectsAndRelationsInsert: fs.readFileSync(path.join(__dirname, '../../prompt/initObjectsAndRelationsInsert.txt'), 'utf8'),
   template1: "Explain this in simple terms: {content}",
   template2: "Generate a summary of: {content}",
   template3: "Translate to French: {content}",

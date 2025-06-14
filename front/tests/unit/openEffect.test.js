@@ -101,7 +101,7 @@ describe('handleOpenEffect', () => {
     expect(allValues).toEqual(mockFileContent.allValues); // Check that old values were cleared and new ones assigned
 
     expect(initializeGraph).toHaveBeenCalledTimes(1);
-    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, false);
+    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, mockFileContent.allValues, false);
     
     expect(mockFileInput.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
@@ -127,7 +127,7 @@ describe('handleOpenEffect', () => {
     expect(graphData.edges).toEqual(mockFileContent.edges);
     expect(allValues).toEqual({}); // Should be cleared
 
-    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, false);
+    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, null, false);
   });
 
 

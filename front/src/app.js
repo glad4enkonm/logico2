@@ -132,7 +132,7 @@ export function App() {
     const randomHandler = handleRandomEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
     // TODO: Update newHandler and openHandler similarly if they also need to clear highlights
     const newHandler = handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current); // Keeping old signature for now
-    const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be read inside
+    const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef); // `graphDataRef.current` will be read inside
     const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be mutated inside
     const jsonHandler = handleJsonDiffEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
 

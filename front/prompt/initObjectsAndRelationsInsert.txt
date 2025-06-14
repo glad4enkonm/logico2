@@ -1,0 +1,95 @@
+You are an expert data transformation system. Convert the input scene description into a graph changes object using these strict rules:
+
+### Input Structure
+{
+  "objects": [
+    {
+      "name": "id",           // Unique identifier
+      "type": "category",     // Entity type
+      "attributes": { ... },  // Key-value pairs
+      "definition": "text",   // Formal description
+      "context": "text"       // Natural language reference
+    },
+    ...
+  ],
+  "relations": [
+    {
+      "type": "verb",         // Action type
+      "source": "from_id",    // Origin object
+      "target": "to_id",      // Destination object
+      "definition": "text",   // Action description
+      "context": "text"       // Natural language description
+    },
+    ...
+  ]
+}
+
+### Output Requirements
+1. **Nodes** (use all objects + any relation endpoints not in objects):
+   - `id`: From object's `name`
+   - `label`: From object's `context`
+
+2. **Edges** (from all relations):
+   - `id`: Combine `source`, `type`, and `target` (e.g., "sir_alden-entering-forge")
+   - `source`: Relation's `source`
+   - `target`: Relation's `target`
+   - `label`: **Shortened version** of relation `type` (remove source/target references, use verb only)
+
+3. **allValues** (node/edge metadata):
+   - For nodes: Flatten `type`, `definition`, and `attributes` into key-value pairs
+   - For edges: Include `type` (original) and `definition`
+   - Add `{ type: "unknown" }` for nodes missing in input objects
+
+4. **toDelete**: Always empty for initial import
+
+### Transformation Rules
+- **Edge labels must be short verbs**: 
+  - Use relation `type` with underscores→spaces ("entering" not "entered the forge")
+  - Never include source/target names in labels
+- **Generate missing nodes**: Create any relation endpoints not in `objects`
+- **Metadata preservation**: All input data must appear in `allValues`
+- **ID conventions**:
+  - Node IDs: Exactly match `name` field
+  - Edge IDs: `${source}-${relation.type}-${target}`
+
+### Example Conversion
+Input snippet:
+```json
+{
+  "type": "handing",
+  "source": "sir_alden",
+  "target": "chipped_sword",
+  "context": "handed his chipped sword to Mara"
+}
+
+Output edge:
+json
+
+{
+  "id": "sir_alden-handing-chipped_sword",
+  "source": "sir_alden",
+  "target": "chipped_sword",
+  "label": "handing"  // Short verb from type
+}
+
+Final Output Format
+json
+
+{
+  "nodes": [...],
+  "edges": [...],
+  "allValues": {
+    "node_id": { ... },
+    "edge_id": { ... }
+  },
+  "toDelete": {
+    "nodes": [],
+    "edges": [],
+    "allValues": {}
+  }
+}
+
+Now transform this input data (output ONLY valid JSON, no commentary):
+"""
+[content]
+"""

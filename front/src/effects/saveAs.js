@@ -19,7 +19,7 @@ function createDownloadLink() {
  * @param {Object} allValues - The values for all elements
  * @returns {Function} - The event handler function
  */
-export function handleSaveAsEffect(graph, graphData, allValues) {
+export function handleSaveAsEffect(graph, graphData, allValuesRef) {
   return (evt) => {
     if (evt.detail !== 'saveAs') return;
 
@@ -34,7 +34,7 @@ export function handleSaveAsEffect(graph, graphData, allValues) {
       {
         nodes: data.nodes.map(node => ({ id: node.id, label: node.label, x: node.x, y: node.y })),
         edges: data.edges.map(edge => ({ source: edge.source, target: edge.target, label: edge.label, id: edge.id })),
-        allValues: allValues
+        allValues: allValuesRef.current
       },
       null,
       2
