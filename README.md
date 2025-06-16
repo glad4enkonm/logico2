@@ -75,7 +75,6 @@ front/                 # Frontend directory
 │   │   ├── randomEffect.test.js
 │   │   ├── rightPanel.test.js
 │   │   ├── saveAsEffect.test.js
-    - Exposing API endpoints for graph manipulation (e.g., loading graph data, creating/updating nodes and edges) and interaction (e.g., highlighting elements). For details on endpoints used for graph creation and highlighting, see the [Frontend API Documentation](./front/README.md#backend-api-endpoints).
 │   │   ├── saveRestoreAllValues.test.js
 docker-compose.yml     # Docker Compose configuration
 .gitignore             # Git ignore file
