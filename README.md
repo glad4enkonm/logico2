@@ -17,6 +17,8 @@ Logico2 is a React-based application for creating and visualizing formal graphs 
 
 ```
 back/                  # Backend directory
+├── connectors/        # Modules for connecting to external data sources (e.g., Neo4j)
+│   └── neo4j.py
 ├── Dockerfile         # Docker configuration for backend
 ├── main.py            # Main backend application
 ├── requirements.txt   # Python dependencies
@@ -96,10 +98,25 @@ Logico2 is designed with a decoupled frontend and backend architecture, often or
     -   Initiating semantic searches.
     -   Communicates with the backend via HTTP requests (using Axios).
 
--   **Backend (`back/`)**: A Python service (details in `back/main.py` and `back/requirements.txt`) responsible for:
+-   **Backend (`back/`)**: A Python FastAPI service responsible for:
     -   Interfacing with Ollama to generate text embeddings using a specified model (e.g., `nomic-embed-text`).
     -   Storing and retrieving these embeddings along with associated graph data using ChromaDB.
     -   Providing an API for semantic search over the stored embeddings.
+    -   Synchronizing with a Neo4j database to fetch the entire graph (nodes and edges).
+    -   Broadcasting the updated graph to all connected clients via a Server-Sent Events (SSE) endpoint.
+
+    #### Neo4j Integration
+
+    The backend can connect to a Neo4j instance to perform a full graph synchronization. This is useful for loading a graph state persisted in a dedicated graph database.
+
+    -   **Configuration**: The connection is configured via a `.env` file in the `back/` directory. You can create this by copying from `back/.env.example`. The key variables are:
+        -   `NEO4J_URI`: The Bolt URI for your Neo4j instance.
+        -   `NEO4J_USER`: The username for the database.
+        -   `NEO4J_PASSWORD`: The password for the user.
+        -   `NEO4J_ID_PROPERTY`: The name of the node property in Neo4j that should be mapped to the `id` field in the application (e.g., `uuid`).
+        -   `NEO4J_LABEL_PROPERTY`: The name of the node property that should be used for the display `label` (e.g., `name`).
+
+    -   **API Endpoint**: A `POST` request to `/sync-neo4j` triggers the synchronization. The backend fetches all nodes and relationships from Neo4j, transforms them into the expected format, and broadcasts the new graph to all clients listening to the `/sse` endpoint.
 
 -   **Ollama Service**: Utilizes the official `ollama/ollama` Docker image to serve language models, specifically configured to provide text embedding models like `nomic-embed-text`. The local `./ollama` directory (see Project Structure) is used for model storage, configuration, and access keys.
 

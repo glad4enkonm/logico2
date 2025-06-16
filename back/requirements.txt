@@ -3,3 +3,6 @@ uvicorn
 requests
 pydantic
 pytest
+neo4j
+sse-starlette
+python-dotenv

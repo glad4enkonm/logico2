@@ -2,12 +2,15 @@ import asyncio
 import json
 import requests
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
 
 from models import GraphData, SearchRequest, SearchAllRequest, Node, Edge, SseMessage, HighlightRequest
 from graph_matching import search_all
+
+# Neo4j specific imports (logic is now in the utility module)
+from connectors.neo4j import get_all_nodes_async, get_all_relationships_async, close_driver, get_driver
 
 app = FastAPI()
 
@@ -19,6 +22,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Neo4j Driver Lifecycle Management
+@app.on_event("startup")
+async def startup_event():
+    print("FastAPI application startup: attempting to connect to Neo4j.")
+    try:
+        await get_driver()
+        print("Neo4j driver initialized successfully during startup.")
+    except Exception as e:
+        print(f"CRITICAL: Failed to initialize Neo4j driver on startup: {e}")
+        print("The application will continue to run, but Neo4j dependent endpoints might fail.")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("FastAPI application shutdown: closing Neo4j connection.")
+    await close_driver()
+
 graph_data = {
     "nodes": [],
     "edges": [],
@@ -27,9 +46,21 @@ graph_data = {
 
 sse_connections = []
 
+def json_serializer(obj):
+    """Custom JSON serializer for objects that are not serializable by default.
+    Handles date/time objects (from Python or Neo4j) and falls back to string conversion.
+    """
+    # If the object has an isoformat() method, use it.
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    # For other unserializable types, convert them to a string.
+    return str(obj)
+
 async def broadcast_graph_update():
     """Broadcasts the current graph data to all connected SSE clients."""
-    message = SseMessage(data=json.dumps(graph_data), event="graph_update")
+    # Use the custom serializer to handle special types like dates from Neo4j.
+    message_data = json.dumps(graph_data, default=json_serializer)
+    message = SseMessage(data=message_data, event="graph_update")
     for queue in sse_connections:
         await queue.put(message)
 
@@ -231,3 +262,45 @@ async def delete_edge(edge_id: str):
     graph_data["edges"] = [e for e in graph_data["edges"] if e["id"] != edge_id]
     await broadcast_graph_update()
     return
+
+
+# Neo4j Sync Endpoint
+@app.post("/sync-neo4j", tags=["Neo4j Sync"])
+async def sync_neo4j_data():
+    """
+    Fetches and transforms graph data from Neo4j using dedicated utility functions,
+    updates the global graph_data, and broadcasts it via the existing SSE mechanism.
+    """
+    global graph_data
+    print("POST /sync-neo4j: Starting Neo4j data synchronization.")
+
+    try:
+        # Fetch and transform data using the refactored utility functions
+        transformed_nodes, node_values = await get_all_nodes_async()
+        transformed_edges, edge_values = await get_all_relationships_async()
+
+        # Combine the allValues from both nodes and edges
+        all_values = {**node_values, **edge_values}
+
+        # Update the global graph_data object
+        graph_data["nodes"] = transformed_nodes
+        graph_data["edges"] = transformed_edges
+        graph_data["allValues"] = all_values
+
+        print(f"Neo4j Sync: Processed {len(transformed_nodes)} nodes and {len(transformed_edges)} edges. Broadcasting update.")
+        
+        # Broadcast the new graph state to all connected clients
+        await broadcast_graph_update()
+
+        return JSONResponse(
+            content={
+                "message": f"Successfully synced {len(transformed_nodes)} nodes and {len(transformed_edges)} edges from Neo4j. Graph data updated and broadcasted.",
+                "nodes_synced": len(transformed_nodes),
+                "edges_synced": len(transformed_edges)
+            },
+            status_code=200
+        )
+
+    except Exception as e:
+        print(f"Neo4j Sync Error: An exception occurred during the sync process: {e}")
+        raise HTTPException(status_code=503, detail=f"An error occurred during sync: {e}")
