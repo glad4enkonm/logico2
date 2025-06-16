@@ -66,6 +66,7 @@ export const BUTTON_EVENTS = {
   OPEN: 'open',
   SAVE_AS: 'saveAs',
   RANDOM: 'random',
+  NEO4J_SYNC: 'neo4j_sync',
   JSON_DIFF_DONE: 'jsonDiffDone',
   SSE_CONNECT: 'sseConnect',
   SSE_DISCONNECT: 'sseDisconnect',

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { searchAll } from '../api';
 import { API_BASE_URL } from '../constants/appConstants';
 
 /**
@@ -118,14 +118,14 @@ const findAllEffect = async (content, graphData) => {
     }));
 
     // Send the data to the backend with the query
-    const response = await axios.post(`${API_BASE_URL}/searchAll`, {
-      graph_data: {
+    const response = await searchAll(
+      {
         nodes: filteredNodes,
         edges: filteredEdges,
-        allValues: allValues || {}, // Include allValues if available
+        allValues: allValues || {},
       },
-      query: parsedContent // Use the validated parsed content
-    });
+      parsedContent
+    );
 
     // Validate the response data
     return validateResponseData(response.data);

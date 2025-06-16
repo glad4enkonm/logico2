@@ -6,7 +6,8 @@ import {
   handleNewEffect,
   handleSaveAsEffect,
   handleOpenEffect,
-  handleJsonDiffEffect
+  handleJsonDiffEffect,
+  handleNeo4jSyncEffect
 } from '@/effects';
 import findByEmbeddingEffect from '@/effects/findByEmbedding';
 import findAllEffect from '@/effects/findAll';
@@ -39,45 +40,47 @@ export function App() {
     const eventSource = new EventSource(`${API_BASE_URL}/sse`);
 
     eventSource.onmessage = (event) => {
-        // Default message handler
+      // Default message handler
     };
-    
+
     eventSource.addEventListener('graph_update', (event) => {
-        const parsedData = JSON.parse(event.data);
-        graphDataRef.current = { nodes: parsedData.nodes, edges: parsedData.edges };
-        allValuesRef.current = parsedData.allValues;
-        
-        if (graphRef.current) {
-            graphRef.current.changeData(graphDataRef.current);
-            setTimeout(() => graphRef.current.fitView(50), 100);
-        }
+      const parsedData = JSON.parse(event.data);
+      graphDataRef.current = { nodes: parsedData.nodes, edges: parsedData.edges };
+      allValuesRef.current = parsedData.allValues;
+
+      if (graphRef.current) {
+        // Using initializeGraph instead of changeData forces a full re-layout,
+        // which is necessary when replacing the entire graph dataset.
+        // The final 'true' argument ensures the GForce layout is applied.
+        initializeGraph(graphRef.current, graphDataRef.current, null, true);
+      }
     });
 
     eventSource.addEventListener('highlight_update', (event) => {
-        if (graphRef.current) {
-            clearPreviousHighlights(graphRef.current, highlitedRef.current);
-            const { node_ids, edge_ids } = JSON.parse(event.data);
-            highlightGraphElements(graphRef.current, node_ids, edge_ids, highlitedRef.current);
+      if (graphRef.current) {
+        clearPreviousHighlights(graphRef.current, highlitedRef.current);
+        const { node_ids, edge_ids } = JSON.parse(event.data);
+        highlightGraphElements(graphRef.current, node_ids, edge_ids, highlitedRef.current);
 
-            if (node_ids.length === 1 && edge_ids.length === 0) {
-                const nodeId = node_ids[0];
-                const node = graphDataRef.current.nodes.find(n => n.id === nodeId);
-                if (node) {
-                    setSelectedElementValues(allValuesRef.current[nodeId] || {});
-                    setSelectedElementLabel(node.label || "Node");
-                }
-            } else if (edge_ids.length === 1 && node_ids.length === 0) {
-                const edgeId = edge_ids[0];
-                const edge = graphDataRef.current.edges.find(e => e.id === edgeId);
-                if (edge) {
-                    setSelectedElementValues(allValuesRef.current[edgeId] || {});
-                    setSelectedElementLabel(edge.label || "Edge");
-                }
-            } else {
-                setSelectedElementValues({});
-                setSelectedElementLabel("Select element");
-            }
+        if (node_ids.length === 1 && edge_ids.length === 0) {
+          const nodeId = node_ids[0];
+          const node = graphDataRef.current.nodes.find(n => n.id === nodeId);
+          if (node) {
+            setSelectedElementValues(allValuesRef.current[nodeId] || {});
+            setSelectedElementLabel(node.label || "Node");
+          }
+        } else if (edge_ids.length === 1 && node_ids.length === 0) {
+          const edgeId = edge_ids[0];
+          const edge = graphDataRef.current.edges.find(e => e.id === edgeId);
+          if (edge) {
+            setSelectedElementValues(allValuesRef.current[edgeId] || {});
+            setSelectedElementLabel(edge.label || "Edge");
+          }
+        } else {
+          setSelectedElementValues({});
+          setSelectedElementLabel("Select element");
         }
+      }
     });
 
     eventSource.onerror = (err) => {
@@ -178,43 +181,44 @@ export function App() {
     }
 
     const currentGraph = graphRef.current;
-    
-    const randomHandler = handleRandomEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
-    const newHandler = handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current);
-    const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef);
-    const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current);
-    const jsonHandler = handleJsonDiffEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
+
+    // Effect handlers will be called directly in the switch statement to avoid stale closures.
 
     const handleButtonClick = async (evt) => {
+      console.log('[DEBUG] Event received in handleButtonClick. Event detail:', evt.detail);
       const eventType = evt.detail && evt.detail.type ? evt.detail.type : evt.detail;
+
       switch (eventType) {
         case BUTTON_EVENTS.SSE_CONNECT:
-            setSseConnected(true);
-            console.log("SSE connection initiated");
-            break;
+          setSseConnected(true);
+          console.log("SSE connection initiated");
+          break;
         case BUTTON_EVENTS.SSE_DISCONNECT:
-            setSseConnected(false);
-            console.log("SSE connection terminated");
-            break;
+          setSseConnected(false);
+          console.log("SSE connection terminated");
+          break;
         case BUTTON_EVENTS.RANDOM:
-          randomHandler(evt);
+          handleRandomEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef)(evt);
           break;
         case BUTTON_EVENTS.NEW:
-          newHandler(evt);
+          handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current)(evt);
           break;
         case BUTTON_EVENTS.SAVE_AS:
-          saveAsHandler(evt);
+          handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef)(evt);
           break;
         case BUTTON_EVENTS.OPEN:
-          openHandler(evt);
+          handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current)(evt);
           break;
+        case BUTTON_EVENTS.NEO4J_SYNC:
+          handleNeo4jSyncEffect()(evt);
+          break;        
         case BUTTON_EVENTS.JSON_DIFF_DONE:
-          const { jsonData } = evt.detail || {};
-          if (!jsonData) {
-            console.warn('jsonHandler called without jsonData in event detail:', evt);
+          const { jsonData: jsonDiffData } = evt.detail || {};
+          if (!jsonDiffData) {
+            console.warn('JSON_DIFF_DONE called without jsonData in event detail:', evt);
             return;
           }
-          jsonHandler(jsonData);
+          handleJsonDiffEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef)(jsonDiffData);
           break;
         case 'EFFECT_CALL_FINDBYEMBEDDING':
           const { inputText: embeddingInput } = evt.detail || {};

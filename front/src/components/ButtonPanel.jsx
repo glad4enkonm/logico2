@@ -63,6 +63,14 @@ const ButtonPanel = ({ sseConnected }) => {
         />
         <Button
           onClick={() => {
+            const event = new CustomEvent('buttonClick', { detail: BUTTON_EVENTS.NEO4J_SYNC });
+            window.dispatchEvent(event);
+          }}
+          text="Neo4j Sync"
+          enabled={true}
+        />
+        <Button
+          onClick={() => {
             const eventType = sseConnected ? BUTTON_EVENTS.SSE_DISCONNECT : BUTTON_EVENTS.SSE_CONNECT;
             const event = new CustomEvent('buttonClick', { detail: { type: eventType } });
             window.dispatchEvent(event);

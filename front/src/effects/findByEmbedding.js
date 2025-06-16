@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { searchByEmbedding } from '../api';
 import { API_BASE_URL } from '../constants/appConstants';
 
 /**
@@ -28,14 +28,14 @@ const findByEmbeddingEffect = async (content, graphData) => {
     }));
 
     // Send the data to the backend with the query
-    const response = await axios.post(`${API_BASE_URL}/search`, {
-      graph_data: {
+    const response = await searchByEmbedding(
+      {
         nodes: filteredNodes,
         edges: filteredEdges,
-        allValues: allValues || {}, // Include allValues if available
+        allValues: allValues || {},
       },
-      query: content // Include query in the request body
-    });
+      content
+    );
 
     // Get the most relevant node ID from the response
     const { most_relevant_id, score } = response.data;
