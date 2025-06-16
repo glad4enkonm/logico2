@@ -2,10 +2,10 @@ import React from 'react';
 import './rightPanel.css';
 import ButtonPanel from '@/components/ButtonPanel';
 
-const RightPanel = ({data, caption }) => {
+const RightPanel = ({data, caption, sseConnected }) => {
   return (
     <div className="right-panel">
-      <ButtonPanel/>
+      <ButtonPanel sseConnected={sseConnected}/>
       <div style={{ marginTop: '40px' }}>
         <h2 className="panel-caption">{caption}</h2>
         <table className="info-table">

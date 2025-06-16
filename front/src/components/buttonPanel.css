@@ -38,3 +38,7 @@
   border-bottom: 1px solid #ccc;
   padding-top: 20px;
 }
+.panel-button.active {
+  background: #785D98; /* A color halfway between default and hover */
+  color: #E0E0E0;
+}

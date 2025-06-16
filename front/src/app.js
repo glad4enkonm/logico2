@@ -12,6 +12,7 @@ import findByEmbeddingEffect from '@/effects/findByEmbedding';
 import findAllEffect from '@/effects/findAll';
 import { initializeGraph, highlightGraphElements, clearPreviousHighlights } from '@/utils/graphUtil';
 import {
+  API_BASE_URL,
   HIGHLIGHT_STYLE,
   DEFAULT_EDGE,
   DEFAULT_NODE,
@@ -20,16 +21,76 @@ import {
 } from '@/constants/appConstants';
 
 export function App() {
-  const containerRef = useRef(null); // For the G6 graph container DOM element
-  const graphRef = useRef(null); // To hold the G6 graph instance
-  const graphDataRef = useRef({ nodes: [], edges: [] }); // To hold the current graph data
-  const allValuesRef = useRef({}); // To hold key-value data for nodes/edges
-  const highlitedRef = useRef({ nodes: [], edges: [] }); // To hold highlighted elements
+  const containerRef = useRef(null);
+  const graphRef = useRef(null);
+  const graphDataRef = useRef({ nodes: [], edges: [] });
+  const allValuesRef = useRef({});
+  const highlitedRef = useRef({ nodes: [], edges: [] });
 
   const [selectedElementValues, setSelectedElementValues] = useState({});
   const [selectedElementLabel, setSelectedElementLabel] = useState("Select element");
+  const [sseConnected, setSseConnected] = useState(false);
 
-  // Effect for initializing G6 graph and its event listeners
+  useEffect(() => {
+    if (!sseConnected) {
+      return;
+    }
+
+    const eventSource = new EventSource(`${API_BASE_URL}/sse`);
+
+    eventSource.onmessage = (event) => {
+        // Default message handler
+    };
+    
+    eventSource.addEventListener('graph_update', (event) => {
+        const parsedData = JSON.parse(event.data);
+        graphDataRef.current = { nodes: parsedData.nodes, edges: parsedData.edges };
+        allValuesRef.current = parsedData.allValues;
+        
+        if (graphRef.current) {
+            graphRef.current.changeData(graphDataRef.current);
+            setTimeout(() => graphRef.current.fitView(50), 100);
+        }
+    });
+
+    eventSource.addEventListener('highlight_update', (event) => {
+        if (graphRef.current) {
+            clearPreviousHighlights(graphRef.current, highlitedRef.current);
+            const { node_ids, edge_ids } = JSON.parse(event.data);
+            highlightGraphElements(graphRef.current, node_ids, edge_ids, highlitedRef.current);
+
+            if (node_ids.length === 1 && edge_ids.length === 0) {
+                const nodeId = node_ids[0];
+                const node = graphDataRef.current.nodes.find(n => n.id === nodeId);
+                if (node) {
+                    setSelectedElementValues(allValuesRef.current[nodeId] || {});
+                    setSelectedElementLabel(node.label || "Node");
+                }
+            } else if (edge_ids.length === 1 && node_ids.length === 0) {
+                const edgeId = edge_ids[0];
+                const edge = graphDataRef.current.edges.find(e => e.id === edgeId);
+                if (edge) {
+                    setSelectedElementValues(allValuesRef.current[edgeId] || {});
+                    setSelectedElementLabel(edge.label || "Edge");
+                }
+            } else {
+                setSelectedElementValues({});
+                setSelectedElementLabel("Select element");
+            }
+        }
+    });
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      eventSource.close();
+      setSseConnected(false);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [sseConnected]);
+
   useEffect(() => {
     const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
     const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
@@ -37,27 +98,23 @@ export function App() {
     if (!graphRef.current && containerRef.current) {
       graphRef.current = new G6.Graph({
         container: containerRef.current,
-        width: width - 300, // Adjust as needed
-        height: height * 0.95, // Adjust as needed
+        width: width - 300,
+        height: height * 0.95,
         modes: GRAPH_MODES,
         defaultNode: DEFAULT_NODE,
         defaultEdge: DEFAULT_EDGE,
       });
     }
 
-    const currentGraph = graphRef.current; // Use a local const for handlers and cleanup
+    const currentGraph = graphRef.current;
 
     if (currentGraph) {
-      // Initialize with current (likely empty) data, `doLayout = false` to respect existing coords if any.
-      // If graphDataRef.current is empty and has no coords, G6's `GRAPH_LAYOUT_OPTIONS` will apply.
-      // If `initializeGraph` uses `graph.read()`, it will preserve x/y from graphDataRef.current.
       initializeGraph(currentGraph, graphDataRef.current, false);
 
       const edgeClickHandler = (e) => {
         setSelectedElementValues(allValuesRef.current[e.item._cfg.id] || {});
         setSelectedElementLabel(e.item._cfg.model.label || "Edge");
 
-        // Clear previous highlights
         clearPreviousHighlights(currentGraph, highlitedRef.current);
 
         highlitedRef.current.edges.push(e.item);
@@ -73,7 +130,6 @@ export function App() {
         setSelectedElementValues(allValuesRef.current[e.item._cfg.id] || {});
         setSelectedElementLabel(e.item._cfg.model.label || "Node");
 
-        // Clear previous highlights
         clearPreviousHighlights(currentGraph, highlitedRef.current);
 
         highlitedRef.current.nodes.push(node);
@@ -106,39 +162,40 @@ export function App() {
       currentGraph.on('node:click', nodeClickHandler);
       currentGraph.on('canvas:click', canvasClickHandler);
 
-      // Cleanup G6 event listeners
       return () => {
         if (currentGraph) {
           currentGraph.off('edge:click', edgeClickHandler);
           currentGraph.off('node:click', nodeClickHandler);
           currentGraph.off('canvas:click', canvasClickHandler);
-          // Optional: Destroy the graph if the App component unmounts
-          // currentGraph.destroy();
-          // graphRef.current = null;
         }
       };
     }
-  }, []); // Empty dependency array: run this effect once on mount.
+  }, []);
 
-  // Effect for handling custom button events
   useEffect(() => {
     if (!graphRef.current) {
-      return; // Graph not yet initialized
+      return;
     }
 
     const currentGraph = graphRef.current;
-    // Pass the refs themselves to the effect handlers
-
+    
     const randomHandler = handleRandomEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
-    // TODO: Update newHandler and openHandler similarly if they also need to clear highlights
-    const newHandler = handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current); // Keeping old signature for now
-    const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef); // `graphDataRef.current` will be read inside
-    const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current); // `graphDataRef.current` will be mutated inside
+    const newHandler = handleNewEffect(currentGraph, graphDataRef.current, allValuesRef.current);
+    const saveAsHandler = handleSaveAsEffect(currentGraph, graphDataRef.current, allValuesRef);
+    const openHandler = handleOpenEffect(graphRef, graphDataRef.current, allValuesRef.current);
     const jsonHandler = handleJsonDiffEffect(currentGraph, graphDataRef, allValuesRef, highlitedRef);
 
     const handleButtonClick = async (evt) => {
-      const eventType = evt.detail && evt.detail.type ? evt.detail.type : evt.detail; // Handle both old and new event detail formats
+      const eventType = evt.detail && evt.detail.type ? evt.detail.type : evt.detail;
       switch (eventType) {
+        case BUTTON_EVENTS.SSE_CONNECT:
+            setSseConnected(true);
+            console.log("SSE connection initiated");
+            break;
+        case BUTTON_EVENTS.SSE_DISCONNECT:
+            setSseConnected(false);
+            console.log("SSE connection terminated");
+            break;
         case BUTTON_EVENTS.RANDOM:
           randomHandler(evt);
           break;
@@ -149,21 +206,16 @@ export function App() {
           saveAsHandler(evt);
           break;
         case BUTTON_EVENTS.OPEN:
-          openHandler(evt); // This will update graphDataRef.current and allValuesRef.current
-          break;
-        case BUTTON_EVENTS.JSON:
-          // JSON Diff button is now handled in ButtonPanel
+          openHandler(evt);
           break;
         case BUTTON_EVENTS.JSON_DIFF_DONE:
-          const { jsonData } = evt.detail || {}; // Destructure jsonData with a fallback for safety
+          const { jsonData } = evt.detail || {};
           if (!jsonData) {
             console.warn('jsonHandler called without jsonData in event detail:', evt);
-            // Optionally, throw an error or dispatch an error event here for more robust handling
-            return; // Early exit to prevent further processing with missing data
+            return;
           }
           jsonHandler(jsonData);
           break;
-        // Handle effect call events
         case 'EFFECT_CALL_FINDBYEMBEDDING':
           const { inputText: embeddingInput } = evt.detail || {};
           if (!embeddingInput) {
@@ -177,13 +229,11 @@ export function App() {
               allValues: allValuesRef.current
             });
 
-            // Highlight the random nodes and edges
             const currentGraph = graphRef.current;
             if (currentGraph) {
               highlightGraphElements(currentGraph, result.nodes, result.edges, highlitedRef.current);
             }
 
-            // Dispatch a new event with the result
             const doneEvent = new CustomEvent('buttonClick', {
               detail: {
                 type: 'EFFECT_DONE_FINDBYEMBEDDING',
@@ -208,13 +258,11 @@ export function App() {
               allValues: allValuesRef.current
             });
 
-            // Highlight the found nodes and edges
             const currentGraph = graphRef.current;
             if (currentGraph) {
               highlightGraphElements(currentGraph, result.nodes, result.edges, highlitedRef.current);
             }
 
-            // Dispatch a new event with the result
             const doneEvent = new CustomEvent('buttonClick', {
               detail: {
                 type: 'EFFECT_DONE_FINDALL',
@@ -236,9 +284,7 @@ export function App() {
     return () => {
       window.removeEventListener('buttonClick', handleButtonClick);
     };
-  }, [graphRef.current]); // Rerun if graphRef.current changes (e.g., if it were re-initialized)
-
-  // handleJsonDone is no longer needed as we're using the event system
+  }, [graphRef.current]);
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -248,6 +294,7 @@ export function App() {
       <RightPanel
         data={selectedElementValues}
         caption={selectedElementLabel}
+        sseConnected={sseConnected}
       />
     </div>
   );

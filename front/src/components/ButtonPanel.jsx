@@ -6,7 +6,7 @@ import JsonDiffPanel from '@/components/JsonDiffPanel';
 import SearchPanel from '@/components/SearchPanel';
 import { BUTTON_EVENTS } from '@/constants/appConstants';
 
-const ButtonPanel = () => {
+const ButtonPanel = ({ sseConnected }) => {
   const [showClipboard, setShowClipboard] = useState(false);
   const [showJsonDiff, setShowJsonDiff] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -60,6 +60,16 @@ const ButtonPanel = () => {
           onClick={() => setShowSearch(!showSearch)}
           text="Search"
           enabled={true}
+        />
+        <Button
+          onClick={() => {
+            const eventType = sseConnected ? BUTTON_EVENTS.SSE_DISCONNECT : BUTTON_EVENTS.SSE_CONNECT;
+            const event = new CustomEvent('buttonClick', { detail: { type: eventType } });
+            window.dispatchEvent(event);
+          }}
+          text={sseConnected ? 'Disconnect' : 'Connect'}
+          enabled={true}
+          active={sseConnected}
         />
       </div>
       {showClipboard && (

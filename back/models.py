@@ -39,3 +39,10 @@ class SearchAllRequest(BaseModel):
 class SearchRequest(BaseModel):
     graph_data: GraphData
     query: str = None
+class SseMessage(BaseModel):
+    data: str
+    event: Optional[str] = None
+
+class HighlightRequest(BaseModel):
+    node_ids: List[str]
+    edge_ids: List[str]

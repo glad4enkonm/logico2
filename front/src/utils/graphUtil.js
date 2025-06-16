@@ -1,34 +1,34 @@
 import G6 from '@antv/g6';
-import { GRAPH_LAYOUT_OPTIONS, GRAPH_LAYOUT_OPTIONS_NO_GFORCE, HIGHLIGHT_STYLE, DEFAULT_EDGE, DEFAULT_NODE } from '../constants/appConstants';
+import { GRAPH_LAYOUT_OPTIONS, GRAPH_LAYOUT_OPTIONS_NO_GFORCE, HIGHLIGHT_STYLE, DEFAULT_EDGE, DEFAULT_NODE, GRAPH_GENERATION_DEFAULTS } from '../constants/appConstants';
 
 /**
  * Highlight nodes and edges in the graph
  * @param {G6.Graph} graph - The G6 graph instance
- * @param {Array} nodes - Array of nodes to highlight
- * @param {Array} edges - Array of edges to highlight
+ * @param {Array<string>} nodeIds - Array of node IDs to highlight
+ * @param {Array<string>} edgeIds - Array of edge IDs to highlight
  * @param {Object} highlitedRef - Reference object containing currently highlighted edges and nodes
  */
-export function highlightGraphElements(graph, nodes, edges, highlitedRef) {
+export function highlightGraphElements(graph, nodeIds, edgeIds, highlitedRef) {
   if (!graph) return;
 
   // Clear previous highlights
-  // Reset styles for previously highlighted elements
   clearPreviousHighlights(graph, highlitedRef);
 
-  // Highlight the specified nodes and edges
-  nodes.forEach(node => {
-    const graphNode = graph.find('node', n => n._cfg.id === node.id);
-    if (graphNode) {
-      highlitedRef.nodes.push(graphNode);
-      graph.updateItem(graphNode, { style: HIGHLIGHT_STYLE });
+  // Highlight the specified nodes by ID
+  nodeIds.forEach(id => {
+    const item = graph.findById(id);
+    if (item) {
+      highlitedRef.nodes.push(item);
+      graph.updateItem(item, { style: HIGHLIGHT_STYLE });
     }
   });
 
-  edges.forEach(edge => {
-    const graphEdge = graph.find('edge', e => e._cfg.id === edge.id);
-    if (graphEdge) {
-      highlitedRef.edges.push(graphEdge);
-      graph.updateItem(graphEdge, { style: HIGHLIGHT_STYLE });
+  // Highlight the specified edges by ID
+  edgeIds.forEach(id => {
+    const item = graph.findById(id);
+    if (item) {
+      highlitedRef.edges.push(item);
+      graph.updateItem(item, { style: HIGHLIGHT_STYLE });
     }
   });
 
@@ -97,14 +97,6 @@ export function initializeGraph(graph, graphData, loadedAllValues = null, doLayo
     return; // Exit after reading
   }
 }
-
-/**
- * Generate a random graph with nodes and edges
- * @param {number} nodeCount - Number of nodes to generate
- * @param {number} edgeCount - Number of edges to generate
- * @returns {{nodes: Array<Object>, edges: Array<Object>, allValues: Object}} - The generated graph data
- */
-import { GRAPH_GENERATION_DEFAULTS } from '../constants/appConstants';
 
 /**
  * Generate a random graph with nodes and edges

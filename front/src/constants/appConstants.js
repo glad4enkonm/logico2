@@ -19,6 +19,7 @@ export const GRAPH_LAYOUT_OPTIONS = {
   preventOverlap: true,
   coulombDisScale: 0.0015,
   nodeSpacing: 50,
+  linkDistance: 150,
   workerEnabled: true,
 };
 
@@ -66,6 +67,8 @@ export const BUTTON_EVENTS = {
   SAVE_AS: 'saveAs',
   RANDOM: 'random',
   JSON_DIFF_DONE: 'jsonDiffDone',
+  SSE_CONNECT: 'sseConnect',
+  SSE_DISCONNECT: 'sseDisconnect',
 };
 
 /**
