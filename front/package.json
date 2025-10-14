@@ -21,8 +21,12 @@
     "process": "^0.11.10"
   },
   "scripts": {
-    "start": "parcel",
-    "build": "parcel build",
+    "start": "parcel serve public/index.html --open",
+    "start:nocache": "parcel serve public/index.html --open --no-cache",
+    "dev:poll": "PARCEL_WATCHER_BACKEND=polling parcel serve public/index.html --open",
+    "watch": "parcel watch public/index.html --dist-dir dist",
+    "build": "parcel build public/index.html --dist-dir dist",
+    "clean": "rm -rf dist .parcel-cache",
     "test": "jest",
     "test:watch": "jest --watch"
   },

@@ -32,6 +32,22 @@ export function App() {
   const [selectedElementLabel, setSelectedElementLabel] = useState("Select element");
   const [sseConnected, setSseConnected] = useState(false);
 
+  // Helpers to compute viewport and panel sizes
+  const getViewportSize = () => {
+    const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    return { width, height };
+  };
+
+  const getPanelWidth = () => {
+    const el = document.querySelector('.right-panel');
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      if (rect && rect.width) return rect.width;
+    }
+    return 400; // default expanded width
+  };
+
   useEffect(() => {
     if (!sseConnected) {
       return;
@@ -95,14 +111,14 @@ export function App() {
   }, [sseConnected]);
 
   useEffect(() => {
-    const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-    const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    const { width: viewportWidth, height: viewportHeight } = getViewportSize();
+    
 
     if (!graphRef.current && containerRef.current) {
       graphRef.current = new G6.Graph({
         container: containerRef.current,
-        width: width - 300,
-        height: height * 0.95,
+        width: viewportWidth - getPanelWidth(),
+        height: viewportHeight * 0.95,
         modes: GRAPH_MODES,
         defaultNode: DEFAULT_NODE,
         defaultEdge: DEFAULT_EDGE,
@@ -165,11 +181,40 @@ export function App() {
       currentGraph.on('node:click', nodeClickHandler);
       currentGraph.on('canvas:click', canvasClickHandler);
 
+      // Resize graph when the panel toggles or window resizes
+      const resizeGraphToFit = () => {
+        const { width: vw, height: vh } = getViewportSize();
+        const panelWidth = getPanelWidth();
+        currentGraph.changeSize(vw - panelWidth, vh * 0.95);
+        currentGraph.paint();
+      };
+
+      const handleRightPanelToggle = () => {
+        // Recalculate after DOM updates and after CSS transition completes
+        const schedule = () => {
+          resizeGraphToFit();
+          setTimeout(resizeGraphToFit, 320);
+        };
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(schedule);
+        } else {
+          setTimeout(schedule, 0);
+        }
+      };
+
+      window.addEventListener('rightPanelToggle', handleRightPanelToggle);
+      window.addEventListener('resize', resizeGraphToFit);
+
+      // Initial adjust (in case layout/DOM order causes mismatch)
+      resizeGraphToFit();
+
       return () => {
         if (currentGraph) {
           currentGraph.off('edge:click', edgeClickHandler);
           currentGraph.off('node:click', nodeClickHandler);
           currentGraph.off('canvas:click', canvasClickHandler);
+          window.removeEventListener('rightPanelToggle', handleRightPanelToggle);
+          window.removeEventListener('resize', resizeGraphToFit);
         }
       };
     }
