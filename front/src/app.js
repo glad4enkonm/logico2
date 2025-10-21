@@ -21,6 +21,41 @@ import {
   BUTTON_EVENTS
 } from '@/constants/appConstants';
 
+// Helpers to load graph data from URL parameters (supports local 'path')
+const parseParamJSON = (value) => {
+  if (!value) return null;
+  try { return JSON.parse(decodeURIComponent(value)); } catch {}
+  try { return JSON.parse(value); } catch {}
+  try { const decoded = atob(value); return JSON.parse(decoded); } catch {}
+  return null;
+};
+
+// Decode URL-safe base64 (p) to a plain string path
+const decodeBase64Url = (b64) => {
+  try {
+    const normalized = decodeURIComponent(b64).replace(/-/g, '+').replace(/_/g, '/');
+    const pad = normalized.length % 4 ? 4 - (normalized.length % 4) : 0;
+    const padded = normalized + '='.repeat(pad);
+    return atob(padded);
+  } catch (e) {
+    try { return atob(b64); } catch { return null; }
+  }
+};
+
+const getQueryParams = () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      graph: params.get('graph'),
+      g: params.get('g'),
+      path: params.get('path'),
+      p: params.get('p'),
+    };
+  } catch (err) {
+    return {};
+  }
+};
+
 export function App() {
   const containerRef = useRef(null);
   const graphRef = useRef(null);
@@ -330,10 +365,62 @@ export function App() {
 
     window.addEventListener('buttonClick', handleButtonClick);
 
-    return () => {
+  return () => {
       window.removeEventListener('buttonClick', handleButtonClick);
     };
   }, [graphRef.current]);
+
+  // Load graph from URL parameters (supports local path via ?path= or ?p=)
+  useEffect(() => {
+    const { path: localPath, p, graph, g } = getQueryParams();
+    const pBase64 = p; const resolvedLocalPath = pBase64 ? decodeBase64Url(pBase64) : null;
+    const inlineGraph = graph || g;
+
+    if (!resolvedLocalPath && !inlineGraph) return;
+
+    const loadAndInit = async () => {
+      try {
+        let payload;
+        if (resolvedLocalPath) {
+          const decodedPath = resolvedLocalPath;
+          // Treat as a same-origin local file path (no protocol)
+          const normalized = decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath;
+          const resp = await fetch(normalized, { cache: 'no-cache' });
+          if (!resp.ok) throw new Error(`Failed to fetch path ${normalized}: ${resp.status} ${resp.statusText}`);
+          payload = await resp.json();
+          // Normalize URL to reflect the path used
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('p', pBase64);
+            window.history.replaceState(null, '', url.toString());
+          } catch {}
+        } else {
+          payload = parseParamJSON(inlineGraph);
+          if (!payload) throw new Error('Invalid graph JSON in URL param');
+        }
+
+        const { nodes = [], edges = [], allValues = {} } = payload;
+        graphDataRef.current = { nodes, edges };
+        allValuesRef.current = allValues;
+
+        if (graphRef.current) {
+          initializeGraph(graphRef.current, graphDataRef.current, allValuesRef.current, false);
+        } else {
+          // wait one tick for graph to be created
+          setTimeout(() => {
+            if (graphRef.current) {
+              initializeGraph(graphRef.current, graphDataRef.current, allValuesRef.current, false);
+            }
+          }, 0);
+        }
+      } catch (err) {
+        console.error('Failed to load graph from URL parameter:', err);
+        alert('Failed to load graph from URL. Please check the path/param.');
+      }
+    };
+
+    loadAndInit();
+  }, []);
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
