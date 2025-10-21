@@ -11,6 +11,7 @@ export const EDGE_STYLE = {
 
 export const HIGHLIGHT_STYLE = {
   stroke: "#03DAC6",
+  endArrow: true,
 };
 
 export const GRAPH_LAYOUT_OPTIONS = {
@@ -52,6 +53,7 @@ export const DEFAULT_NODE = {
 export const DEFAULT_EDGE = {
   style: {
     stroke: "#343434",
+    endArrow: true,
   },
   labelCfg: {
     style: {

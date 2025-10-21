@@ -63,7 +63,7 @@ export function initializeGraph(graph, graphData, loadedAllValues = null, doLayo
 
   if (doLayout) {
     // First set the data
-    graph.data(graphData);
+    graph.data(prepareGraphDataWithParallelEdges(graphData));
 
     // Apply the layout using the GRAPH_LAYOUT_OPTIONS
     graph.updateLayout(GRAPH_LAYOUT_OPTIONS);
@@ -72,7 +72,7 @@ export function initializeGraph(graph, graphData, loadedAllValues = null, doLayo
     graph.render();
   } else {
     // Use read instead of data
-    graph.read(graphData);
+    graph.read(prepareGraphDataWithParallelEdges(graphData));
 
     // If allValues were loaded from the file, apply them to the graph items
     if (loadedAllValues) {
@@ -333,4 +333,88 @@ export function applyGraphChanges(currentGraphData, currentAllValues, changes) {
     edges: newEdges,
     allValues: newAllValues,
   };
+}
+
+// Ensure parallel edges between same node pairs are visually distinct using curved edges
+function prepareGraphDataWithParallelEdges(graphData) {
+  try {
+    if (!graphData || !Array.isArray(graphData.edges)) return graphData;
+    const baseOffset = 24; // pixels offset for curvature
+    const data = {
+      ...graphData,
+      edges: (graphData.edges || []).map(e => ({ ...e })),
+    };
+    const edges = data.edges;
+
+    const groups = new Map();
+    const loops = new Map();
+
+    for (let i = 0; i < edges.length; i++) {
+      const e = edges[i];
+      const s = String(e.source);
+      const t = String(e.target);
+      if (s === t) {
+        // Handle self-loops
+        const count = loops.get(s) || 0;
+        loops.set(s, count + 1);
+        e.type = 'loop';
+        e.loopCfg = {
+          ...(e.loopCfg || {}),
+          position: 'top',
+          dist: 30 + count * 18,
+        };
+        continue;
+      }
+      // Group by undirected pair key so A->B and B->A are in the same group
+      const key = s < t ? `${s}|${t}` : `${t}|${s}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(i);
+    }
+
+    groups.forEach((idxs) => {
+      if (idxs.length <= 1) return; // no parallel edges in this group
+
+      // Split by direction relative to the normalized (lexicographic) order
+      const forward = [];
+      const backward = [];
+      idxs.forEach((idx) => {
+        const ed = edges[idx];
+        const s = String(ed.source);
+        const t = String(ed.target);
+        const normalized = s < t;
+        if (normalized) forward.push(idx); else backward.push(idx);
+      });
+
+      if (backward.length === 0 || forward.length === 0) {
+        // All edges in the same direction: alternate sides symmetrically
+        idxs.forEach((idx, i) => {
+          const sign = i % 2 === 0 ? 1 : -1; // +, -, +, - ...
+          const k = Math.floor(i / 2) + 1;   // 1,1,2,2,3,3 ...
+          const ed = edges[idx];
+          ed.type = ed.type || 'quadratic';
+          ed.curveOffset = sign * baseOffset * k;
+          ed.curvePosition = 0.5;
+        });
+      } else {
+        // Bidirectional: forward edges positive offset, backward edges negative offset
+        forward.forEach((idx, i) => {
+          const ed = edges[idx];
+          ed.type = ed.type || 'quadratic';
+          ed.curveOffset = baseOffset * (i + 1);
+          ed.curvePosition = 0.5;
+        });
+        backward.forEach((idx, i) => {
+          const ed = edges[idx];
+          ed.type = ed.type || 'quadratic';
+          ed.curveOffset = -baseOffset * (i + 1);
+          ed.curvePosition = 0.5;
+        });
+      }
+    });
+
+    return data;
+  } catch (err) {
+    console.warn('prepareGraphDataWithParallelEdges failed, falling back to original graphData:', err);
+    return graphData;
+  }
 }
