@@ -21,7 +21,7 @@ import {
   BUTTON_EVENTS
 } from '@/constants/appConstants';
 
-// Helpers to load graph data from URL parameters (supports local 'path')
+// Helpers to load graph data from URL parameters (supports local 'p' base64 path)
 const parseParamJSON = (value) => {
   if (!value) return null;
   try { return JSON.parse(decodeURIComponent(value)); } catch {}
@@ -48,7 +48,6 @@ const getQueryParams = () => {
     return {
       graph: params.get('graph'),
       g: params.get('g'),
-      path: params.get('path'),
       p: params.get('p'),
     };
   } catch (err) {
@@ -370,9 +369,9 @@ export function App() {
     };
   }, [graphRef.current]);
 
-  // Load graph from URL parameters (supports local path via ?path= or ?p=)
+  // Load graph from URL parameters (supports local base64 path via ?p= and inline JSON via ?g or ?graph)
   useEffect(() => {
-    const { path: localPath, p, graph, g } = getQueryParams();
+    const { p, graph, g } = getQueryParams();
     const pBase64 = p; const resolvedLocalPath = pBase64 ? decodeBase64Url(pBase64) : null;
     const inlineGraph = graph || g;
 
