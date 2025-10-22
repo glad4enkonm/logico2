@@ -47,19 +47,19 @@ const ButtonPanel = ({ sseConnected }) => {
           enabled={true}
         />
         <Button
-          onClick={() => setShowClipboard(!showClipboard)}
-          text="LLM Clipboard"
-          enabled={true}
-        />
-        <Button
           onClick={() => setShowJsonDiff(!showJsonDiff)}
           text="JSON Diff"
           enabled={true}
         />
         <Button
+          onClick={() => setShowClipboard(!showClipboard)}
+          text="LLM Clipboard"
+          enabled={false}
+        />        
+        <Button
           onClick={() => setShowSearch(!showSearch)}
           text="Search"
-          enabled={true}
+          enabled={false}
         />
         <Button
           onClick={() => {
@@ -67,7 +67,7 @@ const ButtonPanel = ({ sseConnected }) => {
             window.dispatchEvent(event);
           }}
           text="Neo4j Sync"
-          enabled={true}
+          enabled={false}
         />
         <Button
           onClick={() => {
@@ -76,7 +76,7 @@ const ButtonPanel = ({ sseConnected }) => {
             window.dispatchEvent(event);
           }}
           text={sseConnected ? 'Disconnect' : 'Connect'}
-          enabled={true}
+          enabled={false}          
           active={sseConnected}
         />
       </div>

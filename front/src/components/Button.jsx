@@ -2,6 +2,7 @@ import React from 'react';
 import './buttonPanel.css';
 
 const Button = ({ onClick, text, enabled = true, active = false }) => {
+  if (!enabled) return null;
   return (
     <button
       className={`panel-button ${active ? 'active' : ''}`}
