@@ -152,7 +152,7 @@ export function App() {
       graphRef.current = new G6.Graph({
         container: containerRef.current,
         width: viewportWidth - getPanelWidth(),
-        height: viewportHeight * 0.95,
+        height: viewportHeight,
         modes: GRAPH_MODES,
         defaultNode: DEFAULT_NODE,
         defaultEdge: DEFAULT_EDGE,
@@ -219,7 +219,7 @@ export function App() {
       const resizeGraphToFit = () => {
         const { width: vw, height: vh } = getViewportSize();
         const panelWidth = getPanelWidth();
-        currentGraph.changeSize(vw - panelWidth, vh * 0.95);
+        currentGraph.changeSize(vw - panelWidth, vh);
         currentGraph.paint();
       };
 
@@ -238,6 +238,7 @@ export function App() {
 
       window.addEventListener('rightPanelToggle', handleRightPanelToggle);
       window.addEventListener('resize', resizeGraphToFit);
+      window.addEventListener('rightPanelResize', resizeGraphToFit);
 
       // Initial adjust (in case layout/DOM order causes mismatch)
       resizeGraphToFit();
@@ -249,6 +250,7 @@ export function App() {
           currentGraph.off('canvas:click', canvasClickHandler);
           window.removeEventListener('rightPanelToggle', handleRightPanelToggle);
           window.removeEventListener('resize', resizeGraphToFit);
+          window.removeEventListener('rightPanelResize', resizeGraphToFit);
         }
       };
     }

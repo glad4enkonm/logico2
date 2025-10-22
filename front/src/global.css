@@ -1,0 +1,12 @@
+/* Global layout and scroll lock */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* prevent page scroll; panel content handles its own */
+}
+
+/* Ensure the root element stretches full height */
+#root, #app {
+  height: 100%;
+}
