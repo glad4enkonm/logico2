@@ -13,6 +13,25 @@ global.navigator = global.window.navigator;
 global.requestAnimationFrame = callback => setTimeout(callback, 0);
 global.cancelAnimationFrame = id => clearTimeout(id);
 
+// Mock Web Worker (G6's layout controller requires Worker when workerEnabled: true)
+global.Worker = class MockWorker {
+  constructor() {}
+  postMessage() {}
+  terminate() {}
+  addEventListener() {}
+  removeEventListener() {}
+  onmessage() {}
+  onerror() {}
+};
+
+// Mock URL.createObjectURL / revokeObjectURL (G6's layout worker factory uses blob URLs)
+if (!URL.createObjectURL) {
+  URL.createObjectURL = () => 'blob:mock-url';
+}
+if (!URL.revokeObjectURL) {
+  URL.revokeObjectURL = () => {};
+}
+
 // Mock canvas
 global.HTMLCanvasElement.prototype.getContext = function() {
   return {
