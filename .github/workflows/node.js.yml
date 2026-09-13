@@ -5,28 +5,22 @@ jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: './front'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
       - name: Set Node.js 22.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
           node-version: 22.x
 
       - name: Run install
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install # will run `yarn install` command
-          dir: './front'
+        run: yarn install
 
       - name: Build production bundle
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: build # will run `yarn build` command
-          dir: './front'
+        run: yarn build
 
       - name: Test the app
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: test # will run `yarn test` command
-          dir: './front'
+        run: yarn test

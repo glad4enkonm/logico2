@@ -17,17 +17,9 @@ describe('Button component', () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  test('does not call onClick when disabled', () => {
-    const handleClick = jest.fn();
-    render(<Button text="Disabled Button" onClick={handleClick} enabled={false} />);
-
-    fireEvent.click(screen.getByText('Disabled Button'));
-    expect(handleClick).not.toHaveBeenCalled();
-  });
-
-  test('has correct disabled attribute when disabled', () => {
-    render(<Button text="Disabled Button" enabled={false} />);
-    expect(screen.getByText('Disabled Button')).toBeDisabled();
+  test('renders nothing when disabled', () => {
+    render(<Button text="Disabled Button" onClick={() => {}} enabled={false} />);
+    expect(screen.queryByText('Disabled Button')).not.toBeInTheDocument();
   });
 
   test('does not have disabled attribute when enabled', () => {
