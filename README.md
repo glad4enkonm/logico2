@@ -80,12 +80,6 @@ front/                 # Frontend directory
 │   │   ├── saveRestoreAllValues.test.js
 docker-compose.yml     # Docker Compose configuration
 .gitignore             # Git ignore file
-ollama/                # Ollama configuration, local model storage, and access keys
-├── id_ed25519
-├── id_ed25519.pub
-├── models/
-│   ├── blobs/
-│   ├── manifests/
 ```
 
 ## Architecture Overview
