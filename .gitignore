@@ -192,3 +192,6 @@ out
 
 # TernJS port file
 .tern-port
+
+.tool/
+.llm_cache/

@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import './buttonPanel.css';
 import Button from '@/components/Button';
 import ClipboardPanel from '@/components/ClipboardPanel';
 import JsonDiffPanel from '@/components/JsonDiffPanel';
 import SearchPanel from '@/components/SearchPanel';
+import LayoutModal from '@/components/LayoutModal';
 import { BUTTON_EVENTS } from '@/constants/appConstants';
 
 const ButtonPanel = ({ sseConnected }) => {
   const [showClipboard, setShowClipboard] = useState(false);
   const [showJsonDiff, setShowJsonDiff] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showLayoutModal, setShowLayoutModal] = useState(false);
+
+  const handleLayoutApply = useCallback((layoutOptions) => {
+    const event = new CustomEvent('buttonClick', {
+      detail: { type: BUTTON_EVENTS.AUTO_LAYOUT, layoutOptions },
+    });
+    window.dispatchEvent(event);
+    setShowLayoutModal(false);
+  }, []);
 
   return (
     <div className="button-panel">
@@ -36,7 +46,7 @@ const ButtonPanel = ({ sseConnected }) => {
             window.dispatchEvent(event);
           }}
           text="Save as"
-          enabled={true} // Enabled button
+          enabled={true}
         />
         <Button
           onClick={() => {
@@ -44,6 +54,11 @@ const ButtonPanel = ({ sseConnected }) => {
             window.dispatchEvent(event);
           }}
           text="Random"
+          enabled={true}
+        />
+        <Button
+          onClick={() => setShowLayoutModal(true)}
+          text="Auto Layout"
           enabled={true}
         />
         <Button
@@ -80,6 +95,11 @@ const ButtonPanel = ({ sseConnected }) => {
           active={sseConnected}
         />
       </div>
+      <LayoutModal
+        isOpen={showLayoutModal}
+        onClose={() => setShowLayoutModal(false)}
+        onApply={handleLayoutApply}
+      />
       {showClipboard && (
         <div className="clipboard-panel-container">
           <ClipboardPanel />

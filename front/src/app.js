@@ -7,7 +7,8 @@ import {
   handleSaveAsEffect,
   handleOpenEffect,
   handleJsonDiffEffect,
-  handleNeo4jSyncEffect
+  handleNeo4jSyncEffect,
+  handleAutoLayoutEffect
 } from '@/effects';
 import findByEmbeddingEffect from '@/effects/findByEmbedding';
 import findAllEffect from '@/effects/findAll';
@@ -292,6 +293,14 @@ export function App() {
           break;
         case BUTTON_EVENTS.NEO4J_SYNC:
           handleNeo4jSyncEffect()(evt);
+          break;
+        case BUTTON_EVENTS.AUTO_LAYOUT:
+          const { layoutOptions } = evt.detail || {};
+          if (!layoutOptions) {
+            console.warn('AUTO_LAYOUT called without layoutOptions in event detail');
+            return;
+          }
+          handleAutoLayoutEffect(graphRef, graphDataRef)(layoutOptions);
           break;        
         case BUTTON_EVENTS.JSON_DIFF_DONE:
           const { jsonData: jsonDiffData } = evt.detail || {};

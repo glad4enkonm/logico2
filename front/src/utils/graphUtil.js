@@ -52,6 +52,21 @@ export function clearPreviousHighlights(graph, highlitedRef) {
 }
 
 /**
+ * Apply a layout to an already-rendered graph by re-setting data and running the new layout.
+ * @param {G6.Graph} graph - The G6 graph instance
+ * @param {Object} graphData - The graph data {nodes, edges, allValues}
+ * @param {Object} layoutOptions - G6 layout config { type, ...params }
+ * @returns {void}
+ */
+export function applyLayout(graph, graphData, layoutOptions) {
+  if (!graph) return;
+  graph.data(prepareGraphDataWithParallelEdges(graphData));
+  graph.updateLayout(layoutOptions);
+  graph.render();
+  graph.fitView(20);
+}
+
+/**
  * Initialize or update a graph with the given data
  * @param {G6.Graph} graph - The G6 graph instance
  * @param {Object} graphData - The graph data {nodes, edges, allValues}

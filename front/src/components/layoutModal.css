@@ -1,0 +1,105 @@
+.layout-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-modal {
+  background: #1e1e1e;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 340px;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #E0E0E0;
+}
+
+.layout-modal h3 {
+  margin: 0 0 16px 0;
+  color: #FFFFFF;
+}
+
+.layout-modal select,
+.layout-modal input[type="number"] {
+  background: #121212;
+  border: 1px solid #343434;
+  border-radius: 4px;
+  color: #E0E0E0;
+  padding: 6px 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.layout-modal select:focus,
+.layout-modal input[type="number"]:focus {
+  outline: none;
+  border-color: #BB86FC;
+}
+
+.layout-modal .param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.layout-modal .param-row label {
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: #BBBBBB;
+}
+
+.layout-modal .param-row input[type="number"] {
+  flex: 0 0 100px;
+  text-align: right;
+}
+
+.layout-modal .param-row input[type="checkbox"] {
+  accent-color: #BB86FC;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.layout-modal .param-row select {
+  flex: 0 0 120px;
+}
+
+.layout-modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.layout-modal .modal-actions button {
+  background: #343434;
+  color: #E0E0E0;
+  border: none;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.layout-modal .modal-actions button:hover {
+  background: #BB86FC;
+}
+
+.layout-modal .modal-actions button.primary {
+  background: #BB86FC;
+  color: #121212;
+}
+
+.layout-modal .modal-actions button.primary:hover {
+  background: #9B6EE3;
+}
