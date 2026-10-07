@@ -1,5 +1,19 @@
-// Axios base URL
-export const API_BASE_URL = 'http://localhost:8000';
+// API base URL (D13 / step 4): same-origin in production (the backend serves
+// the built bundle); explicit override for `parcel serve` dev runs.
+// Priority: ?api= URL param > window.LOGICO_API_URL > NODE_ENV > default.
+const resolveApiBase = () => {
+  try {
+    const fromParam = new URLSearchParams(window.location.search).get('api');
+    if (fromParam) return fromParam.replace(/\/$/, '');
+  } catch {}
+  if (typeof window !== 'undefined' && window.LOGICO_API_URL) {
+    return window.LOGICO_API_URL.replace(/\/$/, '');
+  }
+  if (process.env.NODE_ENV === 'production') return ''; // same origin
+  return 'http://localhost:8000';
+};
+
+export const API_BASE_URL = resolveApiBase();
 
 export const NODE_STYLE = {
   stroke: "#BB86FC",

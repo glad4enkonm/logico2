@@ -1,18 +1,95 @@
 import asyncio
 import json
-import requests
+import os
+import secrets
+from typing import Any, Dict, Optional
+
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict, Any
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
-from models import GraphData, SearchRequest, SearchAllRequest, Node, Edge, SseMessage, HighlightRequest
-from graph_matching import search_all
+import events
+import graph_store
+from graph_store import (
+    GraphError,
+    create_graph,
+    flush_saves,
+    get_graph,
+    list_graph_ids,
+    load_all_from_disk,
+    merge_positions,
+    normalize_graph_data,
+    resolve_graph_id,
+    save_now,
+    schedule_save,
+    validate_graph_id,
+)
+from models import (
+    CreateGraphRequest,
+    EdgeCreate,
+    EdgeUpdate,
+    GraphData,
+    HighlightRequest,
+    LayoutRequest,
+    NodeCreate,
+    NodeUpdate,
+    PositionsRequest,
+    SearchAllRequest,
+    SearchRequest,
+)
 
-# Neo4j specific imports (logic is now in the utility module)
-from connectors.neo4j import get_all_nodes_async, get_all_relationships_async, close_driver, get_driver
+# --- out-of-scope features kept working, optionally gated (spec §1) ---------
+# Ollama, embeddings, semantic search (/search, /embedding, /searchAll) and the
+# Neo4j connector keep their current soft-degradation behavior; the wrapper
+# repo disables them via env flags.
+ENABLE_EMBEDDINGS = os.environ.get("LOGICO_ENABLE_EMBEDDINGS", "1") == "1"
+ENABLE_NEO4J = os.environ.get("LOGICO_ENABLE_NEO4J", "1") == "1"
 
-app = FastAPI()
+if ENABLE_NEO4J:
+    from connectors.neo4j import (
+        close_driver,
+        get_all_nodes_async,
+        get_all_relationships_async,
+        get_driver,
+    )
+else:
+
+    async def get_driver():
+        raise HTTPException(503, "Neo4j connector disabled (LOGICO_ENABLE_NEO4J=0)")
+
+    async def close_driver():
+        return None
+
+    async def get_all_nodes_async():
+        raise HTTPException(503, "Neo4j connector disabled")
+
+    async def get_all_relationships_async():
+        raise HTTPException(503, "Neo4j connector disabled")
+
+
+# Layout whitelist (D7): G6 v4 layout types, mirrors
+# front/src/constants/layoutParams.js LAYOUT_METHODS.
+ALLOWED_LAYOUTS = [
+    "forceAtlas2",
+    "gForce",
+    "force",
+    "fruchterman",
+    "circular",
+    "grid",
+    "concentric",
+    "dagre",
+    "radial",
+    "random",
+    "mds",
+    "comboForce",
+]
+
+FRONT_DIST = os.environ.get(
+    "LOGICO_FRONT_DIST", os.path.join(os.path.dirname(os.path.abspath(__file__)), "front_dist")
+)
+
+app = FastAPI(openapi_url="/api/openapi.json", docs_url="/api/docs")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,103 +99,447 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Neo4j Driver Lifecycle Management
+
+# --- lifecycle --------------------------------------------------------------
+
+
 @app.on_event("startup")
 async def startup_event():
-    print("FastAPI application startup: attempting to connect to Neo4j.")
-    try:
-        await get_driver()
-        print("Neo4j driver initialized successfully during startup.")
-    except Exception as e:
-        print(f"CRITICAL: Failed to initialize Neo4j driver on startup: {e}")
-        print("The application will continue to run, but Neo4j dependent endpoints might fail.")
+    if ENABLE_NEO4J:
+        print("FastAPI startup: attempting to connect to Neo4j.")
+        try:
+            await get_driver()
+            print("Neo4j driver initialized successfully during startup.")
+        except Exception as e:
+            print(f"CRITICAL: Failed to initialize Neo4j driver on startup: {e}")
+            print("The application will continue to run, but Neo4j dependent endpoints might fail.")
+    loaded = load_all_from_disk()
+    if loaded:
+        print(f"graph_store: loaded {len(loaded)} graph(s) from disk: {', '.join(loaded)}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    print("FastAPI application shutdown: closing Neo4j connection.")
+    print("FastAPI shutdown: closing Neo4j connection, flushing saves.")
     await close_driver()
+    await flush_saves()
 
-graph_data = {
-    "nodes": [],
-    "edges": [],
-    "allValues": {}
-}
 
-sse_connections = []
+# --- helpers ----------------------------------------------------------------
 
-def json_serializer(obj):
-    """Custom JSON serializer for objects that are not serializable by default.
-    Handles date/time objects (from Python or Neo4j) and falls back to string conversion.
-    """
-    # If the object has an isoformat() method, use it.
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
-    # For other unserializable types, convert them to a string.
-    return str(obj)
 
-async def broadcast_graph_update():
-    """Broadcasts the current graph data to all connected SSE clients."""
-    # Use the custom serializer to handle special types like dates from Neo4j.
-    message_data = json.dumps(graph_data, default=json_serializer)
-    message = SseMessage(data=message_data, event="graph_update")
-    for queue in sse_connections:
-        await queue.put(message)
+def resolve(gid: Optional[str]) -> str:
+    """D2 graph_id resolver; raises HTTPException with D14 error strings."""
+    try:
+        return resolve_graph_id(gid)
+    except GraphError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+
+async def broadcast_graph_update(gid: str) -> None:
+    await events.publish(gid, events.EVENT_GRAPH_UPDATE, {"graph": get_graph(gid)})
+
+
+def _find_node(gid: str, node_id: str) -> Optional[dict]:
+    for n in get_graph(gid)["nodes"]:
+        if n["id"] == node_id:
+            return n
+    return None
+
+
+def _find_edge(gid: str, edge_id: str) -> Optional[dict]:
+    for e in get_graph(gid)["edges"]:
+        if e["id"] == edge_id:
+            return e
+    return None
+
+
+# --- health -----------------------------------------------------------------
+
+
+@app.get("/healthz")
+async def healthz():
+    """Readiness probe used by the MCP connect tool (D15)."""
+    return {"status": "ok", "graphs": list_graph_ids()}
+
+
+# --- SSE (D10) --------------------------------------------------------------
+
 
 @app.get("/sse")
-async def sse(request: Request):
-    """
-    Establishes a Server-Sent Events (SSE) connection with a client.
-    This endpoint keeps the connection alive and pushes graph updates
-    in real-time.
-    """
-    queue = asyncio.Queue()
-    sse_connections.append(queue)
+async def sse(request: Request, g: Optional[str] = None):
+    """Multiplexed SSE: `?g=<gid>` announces the displayed graph (a `?p=` tab);
+    omitted => wildcard client that receives every event."""
+    graphs = None
+    if g:
+        validate_graph_id(g)
+        graphs = {g}
+    client = events.register(graphs)
 
     async def event_generator():
         try:
             while True:
-                message = await queue.get()
                 if await request.is_disconnected():
                     break
-                yield f"event: {message.event}\ndata: {message.data}\n\n"
+                try:
+                    payload = await asyncio.wait_for(client.queue.get(), timeout=15.0)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
+                d = json.loads(payload)
+                yield f"event: {d['event']}\ndata: {json.dumps(d)}\n\n"
         except asyncio.CancelledError:
             pass
         finally:
-            sse_connections.remove(queue)
+            events.unregister(client)
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# --- graph registry ---------------------------------------------------------
+
+
+@app.get("/graphs")
+async def graphs_index():
+    """List graph ids (used by MCP list_graphs)."""
+    return {"graphs": list_graph_ids()}
+
+
+@app.post("/graphs")
+async def graphs_create(req: CreateGraphRequest):
+    """Create an empty graph with an explicit id (used by MCP create_graph)."""
+    gid = req.graph_id or "default"
+    try:
+        create_graph(gid)
+    except GraphError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    return {"graph_id": gid}
+
+
+# --- shared CRUD helpers (graph-scoped + legacy endpoints delegate here) ----
+
+
+async def _create_node(gid: str, node: NodeCreate) -> dict:
+    if _find_node(gid, node.id) is not None:
+        raise HTTPException(409, f"Node '{node.id}' already exists")
+    record = {"id": node.id, "label": node.label}
+    if node.x is not None:
+        record["x"] = node.x
+    if node.y is not None:
+        record["y"] = node.y
+    get_graph(gid)["nodes"].append(record)
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {"id": node.id}
+
+
+async def _update_node(gid: str, node_id: str, patch: NodeUpdate) -> dict:
+    node = _find_node(gid, node_id)
+    if node is None:
+        raise HTTPException(404, f"Node '{node_id}' not found")
+    # merge semantics (D9): only fields present in the request are written
+    data = patch.model_dump(exclude_unset=True)
+    for key, value in data.items():
+        node[key] = value
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {}
+
+
+async def _delete_node(gid: str, node_id: str) -> dict:
+    graph = get_graph(gid)
+    if _find_node(gid, node_id) is None:
+        raise HTTPException(404, f"Node '{node_id}' not found")
+    graph["nodes"] = [n for n in graph["nodes"] if n["id"] != node_id]
+    graph["edges"] = [
+        e for e in graph["edges"] if e["source"] != node_id and e["target"] != node_id
+    ]
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {}
+
+
+async def _create_edge(gid: str, edge: EdgeCreate) -> dict:
+    graph = get_graph(gid)
+    if _find_node(gid, edge.source) is None:  # D11
+        raise HTTPException(404, f"Node '{edge.source}' (source) not found")
+    if _find_node(gid, edge.target) is None:
+        raise HTTPException(404, f"Node '{edge.target}' (target) not found")
+    edge_id = edge.id  # D16: auto-generate when omitted
+    if edge_id is None or edge_id == "":
+        edge_id = f"e-{secrets.token_hex(4)}"
+        while _find_edge(gid, edge_id) is not None:
+            edge_id = f"e-{secrets.token_hex(4)}"
+    elif _find_edge(gid, edge_id) is not None:
+        raise HTTPException(409, f"Edge '{edge_id}' already exists")
+    record = {"id": edge_id, "source": edge.source, "target": edge.target, "label": edge.label}
+    graph["edges"].append(record)
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {"id": edge_id}
+
+
+async def _update_edge(gid: str, edge_id: str, patch: EdgeUpdate) -> dict:
+    edge = _find_edge(gid, edge_id)
+    if edge is None:
+        raise HTTPException(404, f"Edge '{edge_id}' not found")
+    data = patch.model_dump(exclude_unset=True)
+    if "source" in data and _find_node(gid, data["source"]) is None:  # D11
+        raise HTTPException(404, f"Node '{data['source']}' (source) not found")
+    if "target" in data and _find_node(gid, data["target"]) is None:
+        raise HTTPException(404, f"Node '{data['target']}' (target) not found")
+    for key, value in data.items():
+        edge[key] = value
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {}
+
+
+async def _delete_edge(gid: str, edge_id: str) -> dict:
+    graph = get_graph(gid)
+    if _find_edge(gid, edge_id) is None:
+        raise HTTPException(404, f"Edge '{edge_id}' not found")
+    graph["edges"] = [e for e in graph["edges"] if e["id"] != edge_id]
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {}
+
+
+async def _load_graph(gid: str, graph: GraphData) -> dict:
+    data = graph.model_dump()
+    # D16: fill in missing edge ids for bulk loads
+    for i, e in enumerate(data["edges"]):
+        if not e.get("id"):
+            e["id"] = f"e-{i}-{secrets.token_hex(3)}"
+    # D11: validate edge endpoints reference existing nodes
+    node_ids = {str(n["id"]) for n in data["nodes"]}
+    for e in data["edges"]:
+        if str(e["source"]) not in node_ids:
+            raise HTTPException(400, f"Edge '{e.get('id')}' references missing source '{e['source']}'")
+        if str(e["target"]) not in node_ids:
+            raise HTTPException(400, f"Edge '{e.get('id')}' references missing target '{e['target']}'")
+    normalized = normalize_graph_data(data)
+    store = get_graph(gid)
+    store["nodes"] = normalized["nodes"]
+    store["edges"] = normalized["edges"]
+    store["allValues"] = normalized["allValues"]
+    schedule_save(gid)
+    await broadcast_graph_update(gid)
+    return {}
+
+
+async def _positions(gid: str, req: PositionsRequest) -> dict:
+    """D8: silent merge — no SSE broadcast (would cause a layout loop)."""
+    merge_positions(gid, [p.model_dump() for p in req.positions])
+    return {}
+
+
+async def _layout(gid: str, req: LayoutRequest) -> dict:
+    if req.type not in ALLOWED_LAYOUTS:  # D7
+        raise HTTPException(
+            400, f"Layout '{req.type}' not allowed. Allowed: {', '.join(ALLOWED_LAYOUTS)}"
+        )
+    layout_options = {"type": req.type, **(req.model_extra or {})}
+    # D6: dispatch to explicit subscribers only — a wildcard client cannot
+    # know which graph a layout belongs to and must not be counted.
+    clients = await events.publish_explicit(
+        gid, events.EVENT_LAYOUT_REQUEST, {"layoutOptions": layout_options}
+    )
+    return {"clients": clients}
+
+
+async def _highlight(gid: str, req: HighlightRequest) -> dict:
+    await events.publish(
+        gid,
+        events.EVENT_HIGHLIGHT_UPDATE,
+        {"node_ids": req.node_ids, "edge_ids": req.edge_ids},
+    )
+    return {}
+
+
+# --- graph-scoped API (D1) ---------------------------------------------------
+
+
+@app.get("/{gid}/graph")
+async def scoped_get_graph(gid: str):
+    resolve(gid)
+    return get_graph(gid)
+
+
+@app.post("/{gid}/nodes", status_code=201)
+async def scoped_create_node(gid: str, node: NodeCreate):
+    resolve(gid)
+    return await _create_node(gid, node)
+
+
+@app.put("/{gid}/nodes/{node_id}")
+async def scoped_update_node(gid: str, node_id: str, patch: NodeUpdate):
+    resolve(gid)
+    return await _update_node(gid, node_id, patch)
+
+
+@app.delete("/{gid}/nodes/{node_id}")
+async def scoped_delete_node(gid: str, node_id: str):
+    resolve(gid)
+    return await _delete_node(gid, node_id)
+
+
+@app.post("/{gid}/edges", status_code=201)
+async def scoped_create_edge(gid: str, edge: EdgeCreate):
+    resolve(gid)
+    return await _create_edge(gid, edge)
+
+
+@app.put("/{gid}/edges/{edge_id}")
+async def scoped_update_edge(gid: str, edge_id: str, patch: EdgeUpdate):
+    resolve(gid)
+    return await _update_edge(gid, edge_id, patch)
+
+
+@app.delete("/{gid}/edges/{edge_id}")
+async def scoped_delete_edge(gid: str, edge_id: str):
+    resolve(gid)
+    return await _delete_edge(gid, edge_id)
+
+
+@app.post("/{gid}/layout")
+async def scoped_layout(gid: str, req: LayoutRequest):
+    resolve(gid)
+    return await _layout(gid, req)
+
+
+@app.post("/{gid}/positions")
+async def scoped_positions(gid: str, req: PositionsRequest):
+    resolve(gid)
+    return await _positions(gid, req)
+
+
+@app.put("/{gid}/highlight")
+async def scoped_highlight(gid: str, req: HighlightRequest):
+    resolve(gid)
+    return await _highlight(gid, req)
+
+
+@app.post("/{gid}/load-graph")
+async def scoped_load_graph(gid: str, graph: GraphData):
+    resolve(gid)
+    return await _load_graph(gid, graph)
+
+
+@app.post("/{gid}/save")
+async def scoped_save(gid: str):
+    resolve(gid)
+    return {"saved": save_now(gid)}
+
+
+# --- legacy endpoints (paths without graph_id, resolve via D2) ---------------
+
+
+@app.get("/graph")
+async def legacy_get_graph():
+    gid = resolve(None)
+    return get_graph(gid)
+
+
+@app.post("/nodes", status_code=201)
+async def legacy_create_node(node: NodeCreate):
+    gid = resolve(None)
+    return await _create_node(gid, node)
+
+
+@app.put("/nodes/{node_id}")
+async def legacy_update_node(node_id: str, patch: NodeUpdate):
+    gid = resolve(None)
+    return await _update_node(gid, node_id, patch)
+
+
+@app.delete("/nodes/{node_id}")
+async def legacy_delete_node(node_id: str):
+    gid = resolve(None)
+    return await _delete_node(gid, node_id)
+
+
+@app.post("/edges", status_code=201)
+async def legacy_create_edge(edge: EdgeCreate):
+    gid = resolve(None)
+    return await _create_edge(gid, edge)
+
+
+@app.put("/edges/{edge_id}")
+async def legacy_update_edge(edge_id: str, patch: EdgeUpdate):
+    gid = resolve(None)
+    return await _update_edge(gid, edge_id, patch)
+
+
+@app.delete("/edges/{edge_id}")
+async def legacy_delete_edge(edge_id: str):
+    gid = resolve(None)
+    return await _delete_edge(gid, edge_id)
+
+
+@app.post("/layout")
+async def legacy_layout(req: LayoutRequest):
+    gid = resolve(None)
+    return await _layout(gid, req)
+
+
+@app.post("/positions")
+async def legacy_positions(req: PositionsRequest):
+    gid = resolve(None)
+    return await _positions(gid, req)
+
+
+@app.post("/highlight")
+async def legacy_highlight(req: HighlightRequest):
+    gid = resolve(None)
+    return await _highlight(gid, req)
+
+
+@app.post("/load-graph")
+async def legacy_load_graph(graph: GraphData):
+    gid = resolve(None)
+    return await _load_graph(gid, graph)
+
+
+@app.post("/save")
+async def legacy_save():
+    gid = resolve(None)
+    return {"saved": save_now(gid)}
+
+
+# --- semantic search (kept working, gated; not exposed by the MCP wrapper) ---
+
 
 def calculate_embedding(text: str) -> Dict:
-    url = "http://ollama:11434/api/embeddings"
-    payload = {
-        "model": "nomic-embed-text",
-        "prompt": text
-    }
-    headers = {
-        "Content-Type": "application/json"
-    }
+    url = os.environ.get("LOGICO_OLLAMA_URL", "http://ollama:11434") + "/api/embeddings"
+    import requests
 
-    response = requests.post(url, json=payload, headers=headers)
-
+    payload = {"model": "nomic-embed-text", "prompt": text}
+    response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
     if response.status_code == 200:
         return response.json()
-    else:
-        raise HTTPException(status_code=response.status_code,
-                            detail="Error calculating embedding")
+    raise HTTPException(status_code=response.status_code, detail="Error calculating embedding")
+
 
 def calculate_string_embedding(entity_id: str, definition: str) -> Dict:
     if not definition:
         return {}
+    return calculate_embedding(f"{entity_id}: {definition}")
 
-    text = f"{entity_id}: {definition}"
-    return calculate_embedding(text)
 
 @app.get("/embedding")
 def get_embedding():
     return {"message": "This is an embedding endpoint"}
 
+
 @app.post("/search")
 def search_graph(search_request: SearchRequest) -> Dict[str, Any]:
+    if not ENABLE_EMBEDDINGS:
+        raise HTTPException(503, "Embeddings disabled (LOGICO_ENABLE_EMBEDDINGS=0)")
     query = search_request.query
     graph_data = search_request.graph_data
 
@@ -132,175 +553,68 @@ def search_graph(search_request: SearchRequest) -> Dict[str, Any]:
 
     for entity_id, entity_data in graph_data.allValues.items():
         if "definition" in entity_data:
-            entity_embedding = calculate_string_embedding(
-                entity_id, entity_data["definition"])
-
+            entity_embedding = calculate_string_embedding(entity_id, entity_data["definition"])
             if "embedding" in entity_embedding and "embedding" in query_embedding:
                 score = sum(
-                    a * b for a, b in zip(entity_embedding["embedding"], query_embedding["embedding"]))
-
+                    a * b
+                    for a, b in zip(entity_embedding["embedding"], query_embedding["embedding"])
+                )
                 if score > highest_score:
                     highest_score = score
                     most_relevant_id = entity_id
 
     return {"most_relevant_id": most_relevant_id, "score": highest_score}
 
-@app.post("/load-graph")
-async def load_graph(graph: GraphData):
-    global graph_data
-    graph_data = {
-        "nodes": [node.dict() for node in graph.nodes],
-        "edges": [edge.dict() for edge in graph.edges],
-        "allValues": graph.allValues
-    }
-    await broadcast_graph_update()
-    return {"message": "Graph data loaded successfully"}
-
-@app.get("/graph")
-def get_graph():
-    global graph_data
-    return graph_data
 
 @app.post("/searchAll")
 def search_all_endpoint(search_all_request: SearchAllRequest) -> Dict[str, Any]:
+    from graph_matching import search_all
+
     graph_data = search_all_request.graph_data
     query_objects = search_all_request.query.get("objects", [])
     query_relations = search_all_request.query.get("relations", [])
-
     return search_all(graph_data, query_objects, query_relations)
 
-@app.post("/highlight")
-async def highlight_elements(highlight_request: HighlightRequest):
-    """
-    Highlights a set of nodes and edges based on their IDs.
-    Broadcasts a highlight_update event to all SSE clients.
-    """
-    message_data = highlight_request.dict()
-    message = SseMessage(data=json.dumps(message_data), event="highlight_update")
-    for queue in sse_connections:
-        await queue.put(message)
-    return {"message": "Highlight update sent"}
 
-@app.post("/nodes", status_code=201)
-async def create_node(node: Node):
-    """
-    Creates a new node and adds it to the graph.
-    Broadcasts the updated graph to all SSE clients.
-    """
-    global graph_data
-    graph_data["nodes"].append(node.dict())
-    await broadcast_graph_update()
-    return node
-
-@app.put("/nodes/{node_id}")
-async def update_node(node_id: str, node: Node):
-    """
-    Updates an existing node by its ID.
-    Broadcasts the updated graph to all SSE clients.
-    """
-    global graph_data
-    for i, n in enumerate(graph_data["nodes"]):
-        if n["id"] == node_id:
-            graph_data["nodes"][i] = node.dict()
-            await broadcast_graph_update()
-            return node
-    raise HTTPException(status_code=404, detail="Node not found")
-
-@app.delete("/nodes/{node_id}", status_code=204)
-async def delete_node(node_id: str):
-    """
-    Deletes a node by its ID and any connected edges.
-    Broadcasts the updated graph to all SSE clients.
-    """
-    global graph_data
-    node_found = any(n["id"] == node_id for n in graph_data["nodes"])
-    if not node_found:
-        raise HTTPException(status_code=404, detail="Node not found")
-    
-    graph_data["nodes"] = [n for n in graph_data["nodes"] if n["id"] != node_id]
-    graph_data["edges"] = [e for e in graph_data["edges"] if e["source"] != node_id and e["target"] != node_id]
-    
-    await broadcast_graph_update()
-    return
-
-@app.post("/edges", status_code=201)
-async def create_edge(edge: Edge):
-    """
-    Creates a new edge and adds it to the graph.
-    Broadcasts the updated graph to all SSE clients.
-    """
-    global graph_data
-    graph_data["edges"].append(edge.dict())
-    await broadcast_graph_update()
-    return edge
-
-@app.put("/edges/{edge_id}")
-async def update_edge(edge_id: str, edge: Edge):
-    """
-    Updates an existing edge by its ID.
-    Broadcasts the updated graph to all SSE clients.
-    """
-    global graph_data
-    for i, e in enumerate(graph_data["edges"]):
-        if e["id"] == edge_id:
-            graph_data["edges"][i] = edge.dict()
-            await broadcast_graph_update()
-            return edge
-    raise HTTPException(status_code=404, detail="Edge not found")
-
-@app.delete("/edges/{edge_id}", status_code=204)
-async def delete_edge(edge_id: str):
-    """
-    Deletes an edge by its ID.
-    Broadcasts the updated graph to all SSE clients.
-    """
-    global graph_data
-    edge_found = any(e["id"] == edge_id for e in graph_data["edges"])
-    if not edge_found:
-        raise HTTPException(status_code=404, detail="Edge not found")
-
-    graph_data["edges"] = [e for e in graph_data["edges"] if e["id"] != edge_id]
-    await broadcast_graph_update()
-    return
+# --- Neo4j sync (kept working, gated) ----------------------------------------
 
 
-# Neo4j Sync Endpoint
 @app.post("/sync-neo4j", tags=["Neo4j Sync"])
 async def sync_neo4j_data():
-    """
-    Fetches and transforms graph data from Neo4j using dedicated utility functions,
-    updates the global graph_data, and broadcasts it via the existing SSE mechanism.
-    """
-    global graph_data
+    gid = resolve(None)
     print("POST /sync-neo4j: Starting Neo4j data synchronization.")
-
     try:
-        # Fetch and transform data using the refactored utility functions
         transformed_nodes, node_values = await get_all_nodes_async()
         transformed_edges, edge_values = await get_all_relationships_async()
-
-        # Combine the allValues from both nodes and edges
-        all_values = {**node_values, **edge_values}
-
-        # Update the global graph_data object
-        graph_data["nodes"] = transformed_nodes
-        graph_data["edges"] = transformed_edges
-        graph_data["allValues"] = all_values
-
-        print(f"Neo4j Sync: Processed {len(transformed_nodes)} nodes and {len(transformed_edges)} edges. Broadcasting update.")
-        
-        # Broadcast the new graph state to all connected clients
-        await broadcast_graph_update()
-
-        return JSONResponse(
-            content={
-                "message": f"Successfully synced {len(transformed_nodes)} nodes and {len(transformed_edges)} edges from Neo4j. Graph data updated and broadcasted.",
-                "nodes_synced": len(transformed_nodes),
-                "edges_synced": len(transformed_edges)
-            },
-            status_code=200
+        store = get_graph(gid)
+        store["nodes"] = transformed_nodes
+        store["edges"] = transformed_edges
+        store["allValues"] = {**node_values, **edge_values}
+        print(
+            f"Neo4j Sync: Processed {len(transformed_nodes)} nodes and "
+            f"{len(transformed_edges)} edges. Broadcasting update."
         )
-
+        await broadcast_graph_update(gid)
+        schedule_save(gid)
+        return {
+            "message": (
+                f"Successfully synced {len(transformed_nodes)} nodes and "
+                f"{len(transformed_edges)} edges from Neo4j."
+            ),
+            "nodes_synced": len(transformed_nodes),
+            "edges_synced": len(transformed_edges),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Neo4j Sync Error: An exception occurred during the sync process: {e}")
-        raise HTTPException(status_code=503, detail=f"An error occurred during sync: {e}")
+        print(f"Neo4j Sync Error: {e}")
+        raise HTTPException(503, f"An error occurred during sync: {e}")
+
+
+# --- static files (D12: mount only /graphs -> graphs dir, then SPA last) ----
+# Routes declared above take precedence over the mounts below. Only /graphs is
+# exposed from the data dir; the SPA mount is last so it cannot shadow APIs.
+os.makedirs(graph_store.GRAPHS_DIR, exist_ok=True)
+app.mount("/graphs", StaticFiles(directory=graph_store.GRAPHS_DIR), name="graphs")
+if os.path.isdir(FRONT_DIST):
+    app.mount("/", StaticFiles(directory=FRONT_DIST, html=True), name="front")

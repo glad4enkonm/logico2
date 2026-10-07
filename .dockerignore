@@ -1,0 +1,13 @@
+node_modules
+front/node_modules
+front/dist
+front/.parcel-cache
+back/.venv
+.git
+.llm_cache
+.tool
+.buff
+data
+*.md
+.github
+.vscode

@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../constants/appConstants';
 
-// Create a single, configured axios instance for all backend communication.
+// Single configured axios instance for all backend communication.
+// API_BASE_URL resolves to same-origin in production builds (step 4).
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8000', // The base URL for the backend API
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,4 +36,16 @@ export const searchByEmbedding = (graph_data, query) => {
  */
 export const searchAll = (graph_data, query) => {
   return apiClient.post('/searchAll', { graph_data, query });
+};
+
+// --- MCP-era endpoints (steps 2-3) -----------------------------------------
+
+/**
+ * Write node coordinates back to the backend after layout stabilizes or a
+ * node drag ends (D8). Silent merge on the server — no SSE echo, no loops.
+ * @param {string} graphId
+ * @param {Array<{id: string, x: number, y: number}>} positions
+ */
+export const postPositions = (graphId, positions) => {
+  return apiClient.post(`/${graphId}/positions`, { positions });
 };

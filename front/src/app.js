@@ -21,6 +21,32 @@ import {
   GRAPH_MODES,
   BUTTON_EVENTS
 } from '@/constants/appConstants';
+import { postPositions } from '@/api';
+
+// Extract graph_id from a /graphs/<gid>.json path (spec D3/D12).
+const extractGraphIdFromPath = (path) => {
+  const m = /^\/graphs\/([a-zA-Z0-9_-]+)\.json$/.exec(path || '');
+  return m ? m[1] : null;
+};
+
+// D9: if any node lacks coordinates we must run a layout instead of
+// trusting empty positions.
+const graphNeedsLayout = (nodes) => (nodes || []).some((n) => n.x == null || n.y == null);
+
+// D8: debounce window for writing positions back to the backend after a
+// layout stabilizes; node:dragend posts immediately.
+const POSITION_WRITE_BACK_DELAY_MS = 1000;
+
+const postPositionsSilently = (graphId, nodes) => {
+  if (!graphId) return;
+  const positions = (nodes || [])
+    .map((n) => ({ id: n.id, x: n.x, y: n.y }))
+    .filter((p) => p.x != null && p.y != null);
+  if (!positions.length) return;
+  postPositions(graphId, positions).catch((err) => {
+    console.warn('Position write-back failed:', err.message);
+  });
+};
 
 // Helpers to load graph data from URL parameters (supports local 'p' base64 path)
 const parseParamJSON = (value) => {
@@ -66,6 +92,8 @@ export function App() {
   const [selectedElementValues, setSelectedElementValues] = useState({});
   const [selectedElementLabel, setSelectedElementLabel] = useState("Select element");
   const [sseConnected, setSseConnected] = useState(false);
+  const graphIdRef = useRef(null);
+  const positionWriteBackTimerRef = useRef(null);
 
   // Helpers to compute viewport and panel sizes
   const getViewportSize = () => {
@@ -88,60 +116,123 @@ export function App() {
       return;
     }
 
-    const eventSource = new EventSource(`${API_BASE_URL}/sse`);
+    // D10: multiplexed endpoint; announce our graph via ?g= when known so the
+    // backend counts us for layout dispatch and skips other graphs' events.
+    const url = graphIdRef.current
+      ? `${API_BASE_URL}/sse?g=${encodeURIComponent(graphIdRef.current)}`
+      : `${API_BASE_URL}/sse`;
+    let eventSource = null;
+    let retryTimer = null;
+    let retryAttempt = 0;
 
-    eventSource.onmessage = (event) => {
-      // Default message handler
-    };
-
-    eventSource.addEventListener('graph_update', (event) => {
-      const parsedData = JSON.parse(event.data);
-      graphDataRef.current = { nodes: parsedData.nodes, edges: parsedData.edges };
-      allValuesRef.current = parsedData.allValues;
-
-      if (graphRef.current) {
-        // Using initializeGraph instead of changeData forces a full re-layout,
-        // which is necessary when replacing the entire graph dataset.
-        // The final 'true' argument ensures the GForce layout is applied.
-        initializeGraph(graphRef.current, graphDataRef.current, null, true);
+    // D8: debounce ~1s after a graph_update/layout before writing positions back
+    const schedulePositionWriteBack = () => {
+      if (positionWriteBackTimerRef.current) {
+        clearTimeout(positionWriteBackTimerRef.current);
       }
-    });
-
-    eventSource.addEventListener('highlight_update', (event) => {
-      if (graphRef.current) {
-        clearPreviousHighlights(graphRef.current, highlitedRef.current);
-        const { node_ids, edge_ids } = JSON.parse(event.data);
-        highlightGraphElements(graphRef.current, node_ids, edge_ids, highlitedRef.current);
-
-        if (node_ids.length === 1 && edge_ids.length === 0) {
-          const nodeId = node_ids[0];
-          const node = graphDataRef.current.nodes.find(n => n.id === nodeId);
-          if (node) {
-            setSelectedElementValues(allValuesRef.current[nodeId] || {});
-            setSelectedElementLabel(node.label || "Node");
-          }
-        } else if (edge_ids.length === 1 && node_ids.length === 0) {
-          const edgeId = edge_ids[0];
-          const edge = graphDataRef.current.edges.find(e => e.id === edgeId);
-          if (edge) {
-            setSelectedElementValues(allValuesRef.current[edgeId] || {});
-            setSelectedElementLabel(edge.label || "Edge");
-          }
-        } else {
-          setSelectedElementValues({});
-          setSelectedElementLabel("Select element");
+      positionWriteBackTimerRef.current = setTimeout(() => {
+        positionWriteBackTimerRef.current = null;
+        const graph = graphRef.current;
+        if (!graph) return;
+        // graph.save() returns rendered items incl. current x/y after layout
+        try {
+          postPositionsSilently(graphIdRef.current, graph.save().nodes);
+        } catch (err) {
+          console.warn('Position write-back skipped:', err);
         }
-      }
-    });
-
-    eventSource.onerror = (err) => {
-      console.error("EventSource failed:", err);
-      eventSource.close();
-      setSseConnected(false);
+      }, POSITION_WRITE_BACK_DELAY_MS);
     };
+
+    // D9: only force a full re-layout when coordinates are missing; otherwise
+    // respect existing positions (incl. coordinates the model set).
+    const applyIncomingGraph = (graph) => {
+      // Guard against malformed payloads; empty graphs remain valid (they
+      // legitimately clear the canvas after the model deletes everything).
+      const nodes = Array.isArray(graph && graph.nodes) ? graph.nodes : [];
+      const edges = Array.isArray(graph && graph.edges) ? graph.edges : [];
+      graphDataRef.current = { nodes, edges };
+      allValuesRef.current = (graph && graph.allValues) || {};
+
+      if (graphRef.current) {
+        const doLayout = graphNeedsLayout(nodes);
+        initializeGraph(graphRef.current, graphDataRef.current, null, doLayout);
+        if (doLayout) schedulePositionWriteBack();
+      }
+    };
+
+    const handleGraphUpdate = (event) => {
+      const parsed = JSON.parse(event.data);
+      // D10: multiplexed payload {graph_id, event, data}; legacy shape is the
+      // raw graph object — support both while tabs may talk to an old backend.
+      const graph = (parsed && typeof parsed === 'object' && parsed.data && parsed.data.graph)
+        ? parsed.data.graph
+        : parsed;
+      if (graphIdRef.current && parsed.graph_id && parsed.graph_id !== graphIdRef.current) return;
+      applyIncomingGraph(graph);
+    };
+
+    // D6: layout executed in the browser on layout_request — identical to
+    // pressing the layout button in the UI.
+    const handleLayoutRequest = (event) => {
+      const parsed = JSON.parse(event.data);
+      if (graphIdRef.current && parsed.graph_id && parsed.graph_id !== graphIdRef.current) return;
+      const options = (parsed.data && parsed.data.layoutOptions) || null;
+      if (!options || !graphRef.current) return;
+      handleAutoLayoutEffect(graphRef, graphDataRef)(options);
+      schedulePositionWriteBack();
+    };
+
+    const handleHighlightUpdate = (event) => {
+      if (!graphRef.current) return;
+      const parsed = JSON.parse(event.data);
+      if (graphIdRef.current && parsed.graph_id && parsed.graph_id !== graphIdRef.current) return;
+      const { node_ids, edge_ids } = parsed.data || parsed;
+      clearPreviousHighlights(graphRef.current, highlitedRef.current);
+      highlightGraphElements(graphRef.current, node_ids, edge_ids, highlitedRef.current);
+
+      if (node_ids.length === 1 && edge_ids.length === 0) {
+        const nodeId = node_ids[0];
+        const node = graphDataRef.current.nodes.find(n => n.id === nodeId);
+        if (node) {
+          setSelectedElementValues(allValuesRef.current[nodeId] || {});
+          setSelectedElementLabel(node.label || "Node");
+        }
+      } else if (edge_ids.length === 1 && node_ids.length === 0) {
+        const edgeId = edge_ids[0];
+        const edge = graphDataRef.current.edges.find(e => e.id === edgeId);
+        if (edge) {
+          setSelectedElementValues(allValuesRef.current[edgeId] || {});
+          setSelectedElementLabel(edge.label || "Edge");
+        }
+      } else {
+        setSelectedElementValues({});
+        setSelectedElementLabel("Select element");
+      }
+    };
+
+    const connect = () => {
+      eventSource = new EventSource(url);
+      eventSource.onopen = () => {
+        retryAttempt = 0;
+      };
+      eventSource.addEventListener('graph_update', handleGraphUpdate);
+      eventSource.addEventListener('highlight_update', handleHighlightUpdate);
+      eventSource.addEventListener('layout_request', handleLayoutRequest);
+      // D13: reconnect with exponential backoff instead of closing forever
+      eventSource.onerror = () => {
+        console.warn('SSE connection lost, retrying...');
+        eventSource.close();
+        const wait = Math.min(1000 * 2 ** retryAttempt, 15000);
+        retryAttempt += 1;
+        retryTimer = setTimeout(connect, wait);
+      };
+    };
+
+    connect();
 
     return () => {
-      eventSource.close();
+      if (retryTimer) clearTimeout(retryTimer);
+      if (eventSource) eventSource.close();
     };
   }, [sseConnected]);
 
@@ -216,6 +307,14 @@ export function App() {
       currentGraph.on('node:click', nodeClickHandler);
       currentGraph.on('canvas:click', canvasClickHandler);
 
+      // D8: persist manual node drags immediately (silent backend merge)
+      const nodeDragEndHandler = (e) => {
+        const model = e.item && e.item._cfg ? e.item._cfg.model : null;
+        if (!model) return;
+        postPositionsSilently(graphIdRef.current, [{ id: model.id, x: model.x, y: model.y }]);
+      };
+      currentGraph.on('node:dragend', nodeDragEndHandler);
+
       // Resize graph when the panel toggles or window resizes
       const resizeGraphToFit = () => {
         const { width: vw, height: vh } = getViewportSize();
@@ -249,6 +348,7 @@ export function App() {
           currentGraph.off('edge:click', edgeClickHandler);
           currentGraph.off('node:click', nodeClickHandler);
           currentGraph.off('canvas:click', canvasClickHandler);
+          currentGraph.off('node:dragend', nodeDragEndHandler);
           window.removeEventListener('rightPanelToggle', handleRightPanelToggle);
           window.removeEventListener('resize', resizeGraphToFit);
           window.removeEventListener('rightPanelResize', resizeGraphToFit);
@@ -391,7 +491,12 @@ export function App() {
     const loadAndInit = async () => {
       try {
         let payload;
+        let loadedGraphId = null;
         if (resolvedLocalPath) {
+          // D3/D12: /graphs/<gid>.json path tells us which graph this tab
+          // displays — subscribe to exactly that id on the SSE stream.
+          loadedGraphId = extractGraphIdFromPath(resolvedLocalPath);
+          if (loadedGraphId) graphIdRef.current = loadedGraphId;
           const decodedPath = resolvedLocalPath;
           // Treat as a same-origin local file path (no protocol)
           const normalized = decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath;
@@ -413,15 +518,31 @@ export function App() {
         graphDataRef.current = { nodes, edges };
         allValuesRef.current = allValues;
 
-        if (graphRef.current) {
-          initializeGraph(graphRef.current, graphDataRef.current, allValuesRef.current, false);
-        } else {
+        // D9: if any node lacks coordinates, lay out instead of trusting
+        // empty positions (e.g. graph saved with no open tab). Positions are
+        // written back from the rendered graph AFTER layout (D8).
+        const initLoaded = () => {
+          if (!graphRef.current) return false;
+          const doLayout = graphNeedsLayout(nodes);
+          initializeGraph(graphRef.current, graphDataRef.current, allValuesRef.current, doLayout);
+          if (doLayout && loadedGraphId) {
+            // gForce is iterative: give the layout a moment to settle before
+            // writing coordinates back (same debounce as D8).
+            setTimeout(() => {
+              if (!graphRef.current) return;
+              try {
+                postPositionsSilently(loadedGraphId, graphRef.current.save().nodes);
+              } catch (err) {
+                console.warn('Position write-back skipped after open:', err);
+              }
+            }, POSITION_WRITE_BACK_DELAY_MS);
+          }
+          return true;
+        };
+
+        if (!initLoaded()) {
           // wait one tick for graph to be created
-          setTimeout(() => {
-            if (graphRef.current) {
-              initializeGraph(graphRef.current, graphDataRef.current, allValuesRef.current, false);
-            }
-          }, 0);
+          setTimeout(initLoaded, 0);
         }
       } catch (err) {
         console.error('Failed to load graph from URL parameter:', err);

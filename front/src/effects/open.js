@@ -1,6 +1,11 @@
 import { readFile } from '../utils/fileUtil';
 import { initializeGraph } from '../utils/graphUtil';
 
+// D9: if any node lacks coordinates the file was saved without an open tab
+// (e.g. built purely via the MCP tools) — run a layout instead of trusting
+// empty positions. Same rule the ?p= tab path applies in app.js.
+const graphNeedsLayout = (nodes) => (nodes || []).some((n) => n.x == null || n.y == null);
+
 /**
  * Handle the Open button click
  * @param {React.RefObject<G6.Graph>} graphRef - React ref to the G6 graph instance
@@ -50,8 +55,10 @@ export function handleOpenEffect(graphRef, graphData, allValues) {
             fileAllValues = data.allValues;
           }
 
-          // Initialize the graph with the new data, passing the allValues from the file
-          initializeGraph(graph, graphData, fileAllValues, false);
+          // Initialize the graph with the new data, passing the allValues from the file.
+          // D9: force a layout only when coordinates are missing; otherwise keep
+          // the positions stored in the file (they are already meaningful).
+          initializeGraph(graph, graphData, fileAllValues, graphNeedsLayout(data.nodes));
         } catch (error) {
           console.error('Error loading graph data:', error);
           console.error('Failed to load graph data. Please check the file format.');

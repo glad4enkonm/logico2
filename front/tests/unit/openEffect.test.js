@@ -101,7 +101,8 @@ describe('handleOpenEffect', () => {
     expect(allValues).toEqual(mockFileContent.allValues); // Check that old values were cleared and new ones assigned
 
     expect(initializeGraph).toHaveBeenCalledTimes(1);
-    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, mockFileContent.allValues, false);
+    // D9: fixture nodes carry no coordinates -> layout must be enabled
+    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, mockFileContent.allValues, true);
     
     expect(mockFileInput.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
@@ -127,7 +128,33 @@ describe('handleOpenEffect', () => {
     expect(graphData.edges).toEqual(mockFileContent.edges);
     expect(allValues).toEqual({}); // Should be cleared
 
-    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, null, false);
+    // D9: no coordinates in the fixture -> layout enabled
+    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, null, true);
+  });
+
+  test('D9: keeps stored coordinates (no layout) when the file has them', async () => {
+    const mockFileContent = {
+      nodes: [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20 },
+        { id: 'n2', label: 'Node 2', x: 30, y: 40 },
+      ],
+      edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+      allValues: { n1: { data: 'loaded' } },
+    };
+    const mockFile = new Blob([JSON.stringify(mockFileContent)], { type: 'application/json' });
+    mockFileInput.files = [mockFile];
+
+    readFile.mockResolvedValue(JSON.stringify(mockFileContent));
+    mockFileInput.addEventListener.mockImplementation((event, cb) => {
+      if (event === 'change') mockFileInput.onchangeCallback = cb;
+    });
+
+    handler({ detail: 'open' });
+    await mockFileInput.onchangeCallback({ target: mockFileInput });
+
+    expect(initializeGraph).toHaveBeenCalledTimes(1);
+    // All nodes have x/y -> trust the stored positions, no forced layout
+    expect(initializeGraph).toHaveBeenCalledWith(mockGraph, graphData, mockFileContent.allValues, false);
   });
 
 
