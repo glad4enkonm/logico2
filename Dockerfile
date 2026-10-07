@@ -14,7 +14,9 @@
 #   LOGICO_FRONT_DIST    default /app/front_dist
 #   LOGICO_ENABLE_EMBEDDINGS / LOGICO_ENABLE_NEO4J  default 1 (set 0 to gate off)
 
-FROM node:22-alpine AS front-build
+FROM node:22-bookworm-slim AS front-build
+# (NOT node:22-alpine: the `canvas` devDep has no prebuilt musl binaries —
+# it would fall back to a node-gyp source build needing python+make+gcc.)
 WORKDIR /build
 COPY front/package.json front/yarn.lock ./
 RUN yarn install --frozen-lockfile
