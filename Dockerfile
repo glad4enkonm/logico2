@@ -23,6 +23,7 @@ RUN yarn install --frozen-lockfile
 COPY front/public ./public
 COPY front/src ./src
 COPY front/babel.config.json front/jest.config.js ./
+COPY front/prompt ./prompt
 RUN yarn build
 
 FROM python:3.13-alpine
