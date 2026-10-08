@@ -94,6 +94,9 @@ export function App() {
   const [sseConnected, setSseConnected] = useState(false);
   const graphIdRef = useRef(null);
   const positionWriteBackTimerRef = useRef(null);
+  // True after a manual Disconnect press; suppresses SSE auto-reconnect (D13)
+  // and the mount-time auto-connect so the manual off state survives retries.
+  const sseManualDisconnectRef = useRef(false);
 
   // Helpers to compute viewport and panel sizes
   const getViewportSize = () => {
@@ -118,12 +121,16 @@ export function App() {
 
     // D10: multiplexed endpoint; announce our graph via ?g= when known so the
     // backend counts us for layout dispatch and skips other graphs' events.
+    // NOTE: this effect runs on mount (auto-connect, spec §1 / D13) and again
+    // when the user presses Connect; a manual Disconnect sets sseConnected
+    // false, which tears the stream down via this effect's cleanup.
     const url = graphIdRef.current
       ? `${API_BASE_URL}/sse?g=${encodeURIComponent(graphIdRef.current)}`
       : `${API_BASE_URL}/sse`;
     let eventSource = null;
     let retryTimer = null;
     let retryAttempt = 0;
+    let closed = false; // set by cleanup: cancels pending retries on teardown
 
     // D8: debounce ~1s after a graph_update/layout before writing positions back
     const schedulePositionWriteBack = () => {
@@ -211,6 +218,7 @@ export function App() {
     };
 
     const connect = () => {
+      if (closed || sseManualDisconnectRef.current) return;
       eventSource = new EventSource(url);
       eventSource.onopen = () => {
         retryAttempt = 0;
@@ -222,6 +230,7 @@ export function App() {
       eventSource.onerror = () => {
         console.warn('SSE connection lost, retrying...');
         eventSource.close();
+        if (closed || sseManualDisconnectRef.current) return;
         const wait = Math.min(1000 * 2 ** retryAttempt, 15000);
         retryAttempt += 1;
         retryTimer = setTimeout(connect, wait);
@@ -231,10 +240,19 @@ export function App() {
     connect();
 
     return () => {
+      closed = true; // cancel pending retries (cleanup = full teardown)
       if (retryTimer) clearTimeout(retryTimer);
       if (eventSource) eventSource.close();
     };
   }, [sseConnected]);
+
+  // Auto-connect SSE once on mount (spec §1: the user opens the UI and watches
+  // the model edit live; D13 backoff/retry lives in the effect above). The
+  // Connect button remains for reconnecting after a deliberate Disconnect.
+  useEffect(() => {
+    if (sseManualDisconnectRef.current) return; // user chose Disconnect
+    setSseConnected(true);
+  }, []);
 
   useEffect(() => {
     const { width: viewportWidth, height: viewportHeight } = getViewportSize();
@@ -372,10 +390,12 @@ export function App() {
 
       switch (eventType) {
         case BUTTON_EVENTS.SSE_CONNECT:
+          sseManualDisconnectRef.current = false; // clear manual-off
           setSseConnected(true);
           console.log("SSE connection initiated");
           break;
         case BUTTON_EVENTS.SSE_DISCONNECT:
+          sseManualDisconnectRef.current = true; // suppress auto-reconnect
           setSseConnected(false);
           console.log("SSE connection terminated");
           break;

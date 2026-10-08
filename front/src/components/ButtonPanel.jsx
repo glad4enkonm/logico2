@@ -91,7 +91,7 @@ const ButtonPanel = ({ sseConnected }) => {
             window.dispatchEvent(event);
           }}
           text={sseConnected ? 'Disconnect' : 'Connect'}
-          enabled={false}          
+          enabled={true}
           active={sseConnected}
         />
       </div>
