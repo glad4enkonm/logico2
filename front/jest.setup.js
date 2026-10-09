@@ -24,6 +24,18 @@ global.Worker = class MockWorker {
   onerror() {}
 };
 
+// Mock EventSource (jsdom does not implement SSE; App auto-connects on mount)
+class MockEventSource {
+  constructor(url) {
+    this.url = url;
+    this.readyState = 0;
+  }
+  addEventListener() {}
+  removeEventListener() {}
+  close() { this.readyState = 2; }
+}
+global.EventSource = MockEventSource;
+
 // Mock URL.createObjectURL / revokeObjectURL (G6's layout worker factory uses blob URLs)
 if (!URL.createObjectURL) {
   URL.createObjectURL = () => 'blob:mock-url';
